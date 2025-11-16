@@ -1,0 +1,27 @@
+{
+	"name": "vue-electron",
+	"private": true,
+	"version": "0.0.0",
+	"type": "module",
+	"scripts": {
+		"p-install:zh": "node script/install.js zh",
+		"p-install": "node script/install.js",
+		"dev": "vite",
+		"build": "vue-tsc && vite build && electron-builder",
+		"preview": "vite preview"
+	},
+	"dependencies": {
+		"vue": "^3.6.0-alpha.2"
+	},
+	"devDependencies": {
+		"@vitejs/plugin-vue": "^6.0.1",
+		"electron": "^39.0.0-beta.3",
+		"electron-builder": "^26.1.0",
+		"typescript": "^6.0.0-dev.20251014",
+		"vite": "^7.1.10",
+		"vite-plugin-electron": "^0.29.0",
+		"vite-plugin-electron-renderer": "^0.14.6",
+		"vue-tsc": "^3.1.1"
+	},
+	"main": "dist-electron/main.js"
+}
