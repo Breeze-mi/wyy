@@ -1,10 +1,16 @@
-import { createApp } from 'vue'
-import './style.css'
-import App from './App.vue'
+import { createApp } from "vue";
+import ElementPlus from "element-plus";
+import "element-plus/dist/index.css";
+import "./style.css";
+import router from "./router";
+import { createPinia } from "pinia";
+import App from "./App.vue";
 
-createApp(App).mount('#app').$nextTick(() => {
-  // Use contextBridge
-  window.ipcRenderer.on('main-process-message', (_event, message) => {
-    console.log(message)
-  })
-})
+const pinia = createPinia();
+const app = createApp(App);
+
+app.use(router);
+app.use(pinia);
+app.use(ElementPlus);
+
+app.mount("#app");
