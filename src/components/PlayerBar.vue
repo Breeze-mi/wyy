@@ -1,7 +1,7 @@
 <template>
     <div class="player-bar">
         <!-- 左侧：歌曲信息 -->
-        <div class="song-info" @click="playerStore.toggleDetail">
+        <div class="song-info" @click="goToDetail">
             <div v-if="playerStore.currentSong" class="song-cover-wrapper">
                 <img :src="playerStore.currentSong.picUrl" :alt="playerStore.currentSong.name" class="song-cover" />
             </div>
@@ -47,6 +47,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
+import { useRouter } from "vue-router";
 import {
     VideoPlay,
     VideoPause,
@@ -65,9 +66,23 @@ import MusicApi from "@/api/music";
 import type { SongDetail } from "@/api/music";
 import { ElMessage } from "element-plus";
 
+const router = useRouter();
 const playerStore = usePlayerStore();
 const cacheStore = useCacheStore();
 const audioRef = ref<HTMLAudioElement>();
+
+// 跳转到详情页或返回
+const goToDetail = () => {
+    if (!playerStore.currentSong) return;
+
+    // 如果当前在详情页，则返回
+    if (router.currentRoute.value.path === "/song-detail") {
+        router.back();
+    } else {
+        // 否则跳转到详情页
+        router.push("/song-detail");
+    }
+};
 
 const progressValue = ref(0);
 const volumeValue = ref(playerStore.volume * 100);
@@ -228,12 +243,21 @@ watch(
     }
 );
 
-// 监听currentTime变化（用于单曲循环）
+// 监听currentTime变化（用于单曲循环和进度条拖动）
 watch(
     () => playerStore.currentTime,
     (newTime) => {
+        if (!audioRef.value) return;
+
+        // 如果当前时间与音频时间差距较大（超过1秒），说明是用户拖动进度条
+        const timeDiff = Math.abs(newTime - audioRef.value.currentTime);
+        if (timeDiff > 1 && !isDragging.value) {
+            audioRef.value.currentTime = newTime;
+            return;
+        }
+
         // 如果store的时间被重置为0，且音频当前时间不是0，说明是单曲循环
-        if (newTime === 0 && audioRef.value && audioRef.value.currentTime > 0.1) {
+        if (newTime === 0 && audioRef.value.currentTime > 0.1) {
             audioRef.value.currentTime = 0;
             if (playerStore.isPlaying) {
                 audioRef.value.play().catch(err => {

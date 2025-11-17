@@ -7,16 +7,12 @@
 
     <!-- 播放列表抽屉 -->
     <PlaylistDrawer />
-
-    <!-- 歌曲详情页 -->
-    <SongDetail />
   </div>
 </template>
 
 <script setup lang="ts">
 import PlayerBar from "@/components/PlayerBar.vue";
 import PlaylistDrawer from "@/components/PlaylistDrawer.vue";
-import SongDetail from "@/components/SongDetail.vue";
 </script>
 
 <style>
