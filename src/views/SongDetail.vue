@@ -62,6 +62,8 @@ const lyrics = ref<LyricLine[]>([]);
 const currentLyricIndex = ref(0);
 const lyricsContainerRef = ref<HTMLElement>();
 const currentLyricRef = ref<HTMLElement>();
+let scrollTimer: number | null = null;
+let scrollAnimationFrame: number | null = null;
 
 const goBack = () => {
     router.back();
@@ -130,23 +132,65 @@ watch(
     }
 );
 
-// 滚动到当前歌词
-const scrollToCurrentLyric = () => {
-    nextTick(() => {
-        if (currentLyricRef.value && lyricsContainerRef.value) {
-            const container = lyricsContainerRef.value;
-            const lyric = currentLyricRef.value as HTMLElement;
-            const containerHeight = container.clientHeight;
-            const lyricTop = lyric.offsetTop;
-            const lyricHeight = lyric.clientHeight;
-
-            container.scrollTo({
-                top: lyricTop - containerHeight / 2 + lyricHeight / 2,
-                behavior: 'smooth'
-            });
-        }
-    });
+// 缓动函数：easeOutCubic，让滚动更自然
+const easeOutCubic = (t: number): number => {
+    return 1 - Math.pow(1 - t, 3);
 };
+
+// 自定义平滑滚动动画
+const smoothScrollTo = (element: HTMLElement, targetScrollTop: number, duration: number) => {
+    const startScrollTop = element.scrollTop;
+    const distance = targetScrollTop - startScrollTop;
+    const startTime = performance.now();
+
+    // 取消之前的动画
+    if (scrollAnimationFrame !== null) {
+        cancelAnimationFrame(scrollAnimationFrame);
+    }
+
+    const animateScroll = (currentTime: number) => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const easedProgress = easeOutCubic(progress);
+
+        element.scrollTop = startScrollTop + distance * easedProgress;
+
+        if (progress < 1) {
+            scrollAnimationFrame = requestAnimationFrame(animateScroll);
+        } else {
+            scrollAnimationFrame = null;
+        }
+    };
+
+    scrollAnimationFrame = requestAnimationFrame(animateScroll);
+};
+
+// 滚动到当前歌词（带延迟）
+const scrollToCurrentLyric = () => {
+    // 清除之前的定时器
+    if (scrollTimer !== null) {
+        clearTimeout(scrollTimer);
+    }
+
+    // 延迟900ms后滚动，先让歌词高亮变色，用户看到后再滚动
+    scrollTimer = window.setTimeout(() => {
+        nextTick(() => {
+            if (currentLyricRef.value && lyricsContainerRef.value) {
+                const container = lyricsContainerRef.value;
+                const lyric = currentLyricRef.value as HTMLElement;
+                const containerHeight = container.clientHeight;
+                const lyricTop = lyric.offsetTop;
+                const lyricHeight = lyric.clientHeight;
+                const targetScrollTop = lyricTop - containerHeight / 2 + lyricHeight / 2;
+
+                // 使用自定义平滑滚动，持续时间1000ms
+                smoothScrollTo(container, targetScrollTop, 1000);
+            }
+        });
+    }, 850);
+};
+
+
 
 onMounted(() => {
     // 初始化时解析歌词
@@ -256,6 +300,7 @@ onMounted(() => {
                 padding: 20px;
                 background: var(--el-fill-color-lighter);
                 border-radius: 12px;
+                scroll-behavior: auto; // 禁用浏览器默认的平滑滚动，使用自定义动画
 
                 &::-webkit-scrollbar {
                     width: 8px;
@@ -280,18 +325,28 @@ onMounted(() => {
 
                     .lyric-line {
                         text-align: center;
-                        font-size: 18px;
-                        line-height: 2.5;
-                        color: var(--el-text-color-secondary);
-                        transition: all 0.3s ease;
-                        padding: 12px 0;
+                        font-size: 17px;
+                        line-height: 2.8;
+                        color: var(--el-text-color-placeholder);
+                        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                        padding: 8px 0;
                         cursor: default;
+                        opacity: 0.5;
 
                         &.active {
-                            font-size: 24px;
+                            font-size: 26px;
                             font-weight: 600;
                             color: var(--el-color-primary);
-                            transform: scale(1.1);
+                            opacity: 1;
+                            transform: scale(1.05);
+                            text-shadow: 0 2px 8px rgba(64, 158, 255, 0.2);
+                        }
+
+                        // 当前歌词的前一句和后一句稍微突出一些
+                        &.active+.lyric-line,
+                        &:has(+ .active) {
+                            opacity: 0.7;
+                            color: var(--el-text-color-secondary);
                         }
                     }
                 }
