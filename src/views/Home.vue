@@ -19,7 +19,7 @@
             <div v-if="searchStore.showResults" class="search-results-container">
                 <div class="results-header">
                     <h2>搜索结果</h2>
-                    <span class="results-count">找到 {{ searchStore.searchResults.length }} 首歌曲</span>
+                    <!-- <span class="results-count">找到 {{ searchStore.searchResults.length }} 首歌曲</span> -->
                 </div>
                 <div class="results-table">
                     <div class="table-header">
@@ -27,7 +27,6 @@
                         <div class="col-name">歌曲名</div>
                         <div class="col-artist">艺术家</div>
                         <div class="col-album">专辑名</div>
-                        <div class="col-duration">时长</div>
                         <div class="col-actions">操作</div>
                     </div>
                     <div class="table-body">
@@ -45,7 +44,6 @@
                             </div>
                             <div class="col-artist">{{ song.artists }}</div>
                             <div class="col-album">{{ song.album }}</div>
-                            <div class="col-duration">{{ formatDuration(song.duration) }}</div>
                             <div class="col-actions">
                                 <el-button text :icon="VideoPlay" @click.stop="handlePlaySong(song)" title="播放" />
                                 <el-button text :icon="Plus" @click.stop="handleAddToPlaylist(song)" title="添加到播放列表" />
@@ -208,6 +206,7 @@ onMounted(() => {
 
                     .col-index {
                         width: 50px;
+                        flex-shrink: 0;
                         text-align: center;
                     }
 
@@ -217,20 +216,18 @@ onMounted(() => {
                     }
 
                     .col-artist {
-                        flex: 0 0 180px;
+                        width: 180px;
+                        flex-shrink: 0;
                     }
 
                     .col-album {
-                        flex: 0 0 180px;
-                    }
-
-                    .col-duration {
-                        flex: 0 0 80px;
-                        text-align: center;
+                        width: 200px;
+                        flex-shrink: 0;
                     }
 
                     .col-actions {
-                        flex: 0 0 120px;
+                        width: 140px;
+                        flex-shrink: 0;
                         text-align: center;
                     }
                 }
@@ -256,6 +253,7 @@ onMounted(() => {
 
                         .col-index {
                             width: 50px;
+                            flex-shrink: 0;
                             text-align: center;
                             font-size: 14px;
                             color: var(--el-text-color-secondary);
@@ -291,7 +289,8 @@ onMounted(() => {
                         }
 
                         .col-artist {
-                            flex: 0 0 180px;
+                            width: 180px;
+                            flex-shrink: 0;
                             font-size: 13px;
                             color: var(--el-text-color-secondary);
                             overflow: hidden;
@@ -300,7 +299,8 @@ onMounted(() => {
                         }
 
                         .col-album {
-                            flex: 0 0 180px;
+                            width: 200px;
+                            flex-shrink: 0;
                             font-size: 13px;
                             color: var(--el-text-color-secondary);
                             overflow: hidden;
@@ -308,15 +308,9 @@ onMounted(() => {
                             white-space: nowrap;
                         }
 
-                        .col-duration {
-                            flex: 0 0 80px;
-                            text-align: center;
-                            font-size: 13px;
-                            color: var(--el-text-color-secondary);
-                        }
-
                         .col-actions {
-                            flex: 0 0 120px;
+                            width: 140px;
+                            flex-shrink: 0;
                             display: flex;
                             justify-content: center;
                             gap: 4px;
