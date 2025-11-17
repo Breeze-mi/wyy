@@ -107,7 +107,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from "vue";
+import { onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import { Sunny, Moon, VideoPlay, Plus, Download, Setting } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
@@ -116,11 +116,32 @@ import { usePlayerStore } from "@/stores/player";
 import { useThemeStore } from "@/stores/theme";
 import { useSearchStore } from "@/stores/search";
 import type { Song } from "@/api/music";
+import { getAPIHealthStatus, getConsecutiveFailures } from "@/utils/request";
 
 const router = useRouter();
 const playerStore = usePlayerStore();
 const themeStore = useThemeStore();
 const searchStore = useSearchStore();
+
+// 后端状态（通过 getAPIHealthStatus 实时获取）
+const backendStatus = computed(() => {
+    const isOnline = getAPIHealthStatus();
+    const failures = getConsecutiveFailures();
+
+    let message = "";
+    if (isOnline) {
+        message = "服务器连接成功";
+    } else if (failures >= 3) {
+        message = "接口连接失败，请检查后重新搜索";
+    } else {
+        message = "服务器连接失败";
+    }
+
+    return {
+        isOnline,
+        message
+    };
+});
 
 const goToSettings = () => {
     router.push("/settings");
@@ -146,9 +167,13 @@ const handleAddToPlaylist = (song: Song) => {
     }
 };
 
+
+
 onMounted(() => {
     themeStore.initTheme();
 });
+
+
 </script>
 
 <style scoped lang="scss">
@@ -178,7 +203,8 @@ onMounted(() => {
 
         .actions {
             display: flex;
-            gap: 8px;
+            align-items: center;
+            gap: 12px;
         }
     }
 
@@ -260,7 +286,7 @@ onMounted(() => {
                     }
 
                     .col-artist {
-                        width: 180px;
+                        width: 194px;
                         flex-shrink: 0;
                     }
 
@@ -478,6 +504,34 @@ onMounted(() => {
 
     to {
         transform: rotate(360deg);
+    }
+}
+
+@keyframes pulse-online {
+
+    0%,
+    100% {
+        opacity: 1;
+        box-shadow: 0 0 0 0 rgba(103, 194, 58, 0.7);
+    }
+
+    50% {
+        opacity: 0.8;
+        box-shadow: 0 0 0 4px rgba(103, 194, 58, 0);
+    }
+}
+
+@keyframes pulse-offline {
+
+    0%,
+    100% {
+        opacity: 1;
+        box-shadow: 0 0 0 0 rgba(245, 108, 108, 0.7);
+    }
+
+    50% {
+        opacity: 0.8;
+        box-shadow: 0 0 0 4px rgba(245, 108, 108, 0);
     }
 }
 </style>

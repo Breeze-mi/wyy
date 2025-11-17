@@ -12,5 +12,17 @@ const app = createApp(App);
 app.use(router);
 app.use(pinia);
 app.use(ElementPlus);
-
+if (
+  process.env.NODE_ENV === "development" &&
+  (window as any)?.electronAPI?.openF12
+) {
+  window.addEventListener("keydown", (e) => {
+    // F12
+    if (e.key === "F12") {
+      e.preventDefault();
+      (window as any)?.electronAPI?.openF12();
+      return false;
+    }
+  });
+}
 app.mount("#app");

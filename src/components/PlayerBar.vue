@@ -67,6 +67,7 @@ import { useSettingsStore } from "@/stores/settings";
 import MusicApi from "@/api/music";
 import type { SongDetail } from "@/api/music";
 import { ElMessage } from "element-plus";
+import { checkAPIHealth } from "@/utils/request";
 
 const router = useRouter();
 const playerStore = usePlayerStore();
@@ -154,6 +155,14 @@ watch(
                 } else {
                     console.log(`请求API获取歌曲: ${newSong.name}, 音质: ${settingsStore.quality}`);
 
+                    // 先检查后端状态，避免在音质降级循环中重复检查
+                    // 如果后端之前不可用，会自动在5秒后重新检查（不需要force）
+                    const isHealthy = await checkAPIHealth();
+                    if (!isHealthy) {
+                        ElMessage.error("服务器连接失败，无法加载歌曲");
+                        return;
+                    }
+
                     // 音质降级顺序：从高到低
                     const qualityLevels = [
                         "jymaster",   // 超清母带
@@ -184,9 +193,9 @@ watch(
 
                     while (currentQualityIndex < qualityLevels.length) {
                         try {
-                            const { data } = await MusicApi.getSong(newSong.id, qualityLevels[currentQualityIndex]);
-                            if (data.value?.success && data.value.data?.url) {
-                                songDetail = data.value.data;
+                            const data = await MusicApi.getSong(newSong.id, qualityLevels[currentQualityIndex]);
+                            if (data.success && data.data?.url) {
+                                songDetail = data.data;
 
                                 // 如果降级了，提示用户
                                 if (currentQualityIndex > qualityLevels.indexOf(settingsStore.quality)) {
@@ -201,7 +210,12 @@ watch(
                                 cacheStore.setCachedSong(newSong.id, songDetail);
                                 break;
                             }
-                        } catch (err) {
+                        } catch (err: any) {
+                            // 如果是服务器不可用的错误，直接退出循环
+                            if (err?.message?.includes("服务器连接失败")) {
+                                console.error("服务器错误，无法加载歌曲");
+                                break;
+                            }
                             console.error(`获取${qualityNames[qualityLevels[currentQualityIndex]]}音质失败:`, err);
                         }
 
@@ -210,7 +224,7 @@ watch(
                     }
 
                     if (!songDetail) {
-                        ElMessage.error("所有音质均获取失败");
+                        ElMessage.error("无法加载歌曲");
                         return;
                     }
                 }
@@ -462,6 +476,15 @@ onMounted(async () => {
             if (!songDetail) {
                 console.log(`从API获取歌曲详情: ${song.name}`);
 
+                // 先检查后端状态，避免在音质降级循环中重复检查
+                // 如果后端之前不可用，会自动在5秒后重新检查（不需要force）
+                const isHealthy = await checkAPIHealth();
+                if (!isHealthy) {
+                    console.error("服务器不可用，无法加载歌曲");
+                    ElMessage.error("服务器连接失败，无法加载歌曲");
+                    return;
+                }
+
                 // 音质降级逻辑
                 const qualityLevels = [
                     "jymaster", "sky", "jyeffect", "hires",
@@ -480,9 +503,9 @@ onMounted(async () => {
 
                 while (currentQualityIndex < qualityLevels.length) {
                     try {
-                        const { data } = await MusicApi.getSong(song.id, qualityLevels[currentQualityIndex]);
-                        if (data.value?.success && data.value.data?.url) {
-                            songDetail = data.value.data;
+                        const data = await MusicApi.getSong(song.id, qualityLevels[currentQualityIndex]);
+                        if (data.success && data.data?.url) {
+                            songDetail = data.data;
 
                             if (currentQualityIndex > qualityLevels.indexOf(settingsStore.quality)) {
                                 const originalQuality = settingsStore.quality;
@@ -495,7 +518,12 @@ onMounted(async () => {
                             cacheStore.setCachedSong(song.id, songDetail);
                             break;
                         }
-                    } catch (err) {
+                    } catch (err: any) {
+                        // 如果是服务器不可用的错误，直接退出循环
+                        if (err?.message?.includes("服务器连接失败")) {
+                            // console.error("服务器不可用，停止音质降级尝试");
+                            break;
+                        }
                         console.error(`获取${qualityNames[qualityLevels[currentQualityIndex]]}音质失败:`, err);
                     }
                     currentQualityIndex++;
@@ -526,7 +554,7 @@ onMounted(async () => {
                     audioRef.value.currentTime = 0;
                 }
 
-                console.log("音频源已设置，等待用户点击播放");
+                // console.log("音频源已设置，等待用户点击播放");
             } else {
                 console.error("无法获取歌曲详情");
                 ElMessage.error("无法加载歌曲，请尝试切换歌曲");

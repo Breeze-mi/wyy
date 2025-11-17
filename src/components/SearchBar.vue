@@ -21,6 +21,7 @@ import { ElMessage } from "element-plus";
 import MusicApi from "@/api/music";
 import { useSearchStore } from "@/stores/search";
 import { useSettingsStore } from "@/stores/settings";
+import { resetAPIHealthStatus } from "@/utils/request";
 
 const searchStore = useSearchStore();
 const settingsStore = useSettingsStore();
@@ -80,22 +81,25 @@ const handleSearch = async () => {
         return;
     }
 
+    // 用户主动搜索时，重置健康检查状态，允许重新检测服务器
+    resetAPIHealthStatus();
+
     searchStore.setSearching(true);
     try {
         const type = settingsStore.searchType;
 
         if (type === "music") {
-            // 搜索音乐 - 请求更多结果（最多9999首）
-            const { data } = await MusicApi.search(searchStore.keyword, 9999);
-            if (data.value?.success) {
-                searchStore.setSearchResults(data.value.data);
-                if (data.value.data.length === 0) {
+            // 搜索音乐 - 请求更多结果（最多1000首）
+            const data = await MusicApi.search(searchStore.keyword, 1000);
+            if (data.success) {
+                searchStore.setSearchResults(data.data);
+                if (data.data.length === 0) {
                     ElMessage.info("未找到相关歌曲，请尝试其他关键词");
                 } else {
-                    ElMessage.success(`找到 ${data.value.data.length} 首歌曲`);
+                    ElMessage.success(`找到 ${data.data.length} 首歌曲`);
                 }
             } else {
-                ElMessage.error(data.value?.message || "搜索失败");
+                ElMessage.error(data.message || "搜索失败");
             }
         } else if (type === "playlist") {
             // 解析歌单
@@ -106,13 +110,13 @@ const handleSearch = async () => {
                 return;
             }
 
-            const { data } = await MusicApi.getPlaylist(playlistId);
-            if (data.value?.success && data.value.data?.playlist) {
-                const playlist = data.value.data.playlist;
+            const data = await MusicApi.getPlaylist(playlistId);
+            if (data.success && data.data?.playlist) {
+                const playlist = data.data.playlist;
                 searchStore.setSearchResults(playlist.tracks);
                 ElMessage.success(`解析成功：${playlist.name}，共 ${playlist.tracks.length} 首歌曲`);
             } else {
-                ElMessage.error(data.value?.message || "歌单解析失败，请检查ID是否正确");
+                ElMessage.error(data.message || "歌单解析失败，请检查ID是否正确");
             }
         } else if (type === "album") {
             // 解析专辑
@@ -123,13 +127,13 @@ const handleSearch = async () => {
                 return;
             }
 
-            const { data } = await MusicApi.getAlbum(albumId);
-            if (data.value?.success && data.value.data?.album) {
-                const album = data.value.data.album;
+            const data = await MusicApi.getAlbum(albumId);
+            if (data.success && data.data?.album) {
+                const album = data.data.album;
                 searchStore.setSearchResults(album.songs);
                 ElMessage.success(`解析成功：${album.name}，共 ${album.songs.length} 首歌曲`);
             } else {
-                ElMessage.error(data.value?.message || "专辑解析失败，请检查ID是否正确");
+                ElMessage.error(data.message || "专辑解析失败，请检查ID是否正确");
             }
         } else if (type === "song") {
             // 单曲解析
@@ -141,9 +145,9 @@ const handleSearch = async () => {
             }
 
             // 获取歌曲详情
-            const { data } = await MusicApi.getSong(songId, settingsStore.quality);
-            if (data.value?.success && data.value.data) {
-                const songDetail = data.value.data;
+            const data = await MusicApi.getSong(songId, settingsStore.quality);
+            if (data.success && data.data) {
+                const songDetail = data.data;
                 // 将单曲转换为搜索结果格式
                 const song = {
                     id: songId,
@@ -156,7 +160,7 @@ const handleSearch = async () => {
                 searchStore.setSearchResults([song]);
                 ElMessage.success(`解析成功：${songDetail.name} - ${songDetail.ar_name}`);
             } else {
-                ElMessage.error(data.value?.message || "单曲解析失败");
+                ElMessage.error(data.message || "单曲解析失败，请检查ID是否正确");
             }
         }
     } catch (error) {
