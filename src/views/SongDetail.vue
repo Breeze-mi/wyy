@@ -13,11 +13,13 @@
             <!-- 左侧：封面和歌曲信息 -->
             <div class="left-section">
                 <div class="album-cover-wrapper">
-                    <div class="album-cover" :class="{ rotating: playerStore.isPlaying }" :style="{
-                        backgroundImage: playerStore.currentSong
-                            ? `url(${playerStore.currentSong.picUrl})`
-                            : 'none',
-                    }"></div>
+                    <div v-if="playerStore.currentSong?.picUrl" class="album-cover"
+                        :class="{ rotating: playerStore.isPlaying }" :style="{
+                            backgroundImage: `url(${playerStore.currentSong.picUrl})`,
+                        }"></div>
+                    <div v-else class="album-cover-placeholder" :class="{ rotating: playerStore.isPlaying }">
+                        🎵
+                    </div>
                 </div>
                 <div class="song-info">
                     <h2 class="song-name">{{ playerStore.currentSong?.name || '未知歌曲' }}</h2>
@@ -260,6 +262,22 @@ onMounted(() => {
                     background-position: center;
                     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
                     background-color: var(--el-fill-color-light);
+
+                    &.rotating {
+                        animation: rotate 20s linear infinite;
+                    }
+                }
+
+                .album-cover-placeholder {
+                    width: 400px;
+                    height: 400px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 120px;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
 
                     &.rotating {
                         animation: rotate 20s linear infinite;

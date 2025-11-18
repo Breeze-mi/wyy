@@ -3,8 +3,9 @@
         <!-- 左侧：歌曲信息 -->
         <div class="song-info" @click="goToDetail">
             <div v-if="playerStore.currentSong" class="song-cover-wrapper">
-                <img :src="playerStore.currentSong.picUrl" :alt="playerStore.currentSong.name" class="song-cover"
-                    loading="lazy" />
+                <img v-if="playerStore.currentSong.picUrl" :src="playerStore.currentSong.picUrl"
+                    :alt="playerStore.currentSong.name" class="song-cover" loading="lazy" @error="handleImageError" />
+                <div v-else class="song-cover-placeholder">🎵</div>
             </div>
             <div v-if="playerStore.currentSong" class="song-details">
                 <div class="song-name">{{ playerStore.currentSong.name }}</div>
@@ -17,10 +18,9 @@
             <div class="control-buttons">
                 <el-button circle :icon="playModeIcon" @click="playerStore.togglePlayMode" :title="playModeText" />
                 <el-button circle :icon="DArrowLeft" @click="playerStore.playPrev" />
-                <el-button circle size="large" type="primary" :icon="playerStore.isPlaying ? VideoPause : VideoPlay"
+                <el-button circle size="large" type="primary" :icon="playerStore.isPlaying ? PauseIcon : PlayIcon"
                     @click="handleTogglePlay" :class="{ 'is-playing': playerStore.isPlaying }" />
                 <el-button circle :icon="DArrowRight" @click="playerStore.playNext" />
-                <el-button circle :icon="volumeIcon" @click="toggleMute" />
             </div>
             <div class="progress-bar">
                 <span class="time">{{ formatTime(isDragging ? draggingTime : playerStore.currentTime) }}</span>
@@ -28,14 +28,15 @@
                     @input="handleProgressInput" class="progress-slider" />
                 <span class="time">{{ formatTime(playerStore.duration) }}</span>
             </div>
-        </div>
-
-        <!-- 右侧：音量和播放列表 -->
-        <div class="player-actions">
             <div class="volume-control">
+                <el-button circle :icon="volumeIcon" @click="toggleMute" />
                 <el-slider v-model="volumeValue" :show-tooltip="false" @input="handleVolumeChange" />
             </div>
-            <el-button circle :icon="List" @click="playerStore.togglePlaylist" :badge="playerStore.playlist.length" />
+        </div>
+
+        <!-- 右侧：播放列表 -->
+        <div class="player-actions">
+            <el-button :icon="MenuIcon" @click="playerStore.togglePlaylist" class="playlist-button" />
         </div>
 
         <!-- 音频元素 -->
@@ -50,20 +51,14 @@
 import { ref, computed, watch, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import {
-    VideoPlay,
-    VideoPause,
     DArrowLeft,
     DArrowRight,
-    List,
-    Refresh,
     Sort,
-    RefreshRight,
-    Mute,
-    Microphone,
 } from "@element-plus/icons-vue";
 import { usePlayerStore, PlayMode } from "@/stores/player";
 import { useCacheStore } from "@/stores/cache";
 import { useSettingsStore } from "@/stores/settings";
+import { useThemeStore } from "@/stores/theme";
 import { usePlaylistStore } from "@/stores/playlist";
 import { useLocalMusicStore } from "@/stores/localMusic";
 import MusicApi from "@/api/music";
@@ -71,10 +66,24 @@ import type { SongDetail } from "@/api/music";
 import { ElMessage } from "element-plus";
 import { checkAPIHealth } from "@/utils/request";
 
+// 导入自定义 SVG 图标
+import PlayIcon from "@/assets/icons/play.svg";
+import PauseIcon from "@/assets/icons/pause.svg";
+import MenuIcon from "@/assets/icons/menu.svg";
+import LoopIcon from "@/assets/icons/loop.svg";
+import VolumeOnLightIcon from "@/assets/icons/volume-on-light.svg";
+import VolumeOffLightIcon from "@/assets/icons/volume-off-light.svg";
+import RandomLightIcon from "@/assets/icons/random-light.svg";
+import VolumeOnDarkIcon from "@/assets/icons/volume-on-dark.svg";
+import VolumeOffDarkIcon from "@/assets/icons/volume-off-dark.svg";
+import RandomDarkIcon from "@/assets/icons/random-dark.svg";
+import LoopDarkIcon from "@/assets/icons/loop-dark.svg";
+
 const router = useRouter();
 const playerStore = usePlayerStore();
 const cacheStore = useCacheStore();
 const settingsStore = useSettingsStore();
+const themeStore = useThemeStore();
 
 // 安全地初始化新的stores
 let playlistStore;
@@ -109,6 +118,13 @@ const goToDetail = () => {
     }
 };
 
+// 处理图片加载错误
+const handleImageError = (e: Event) => {
+    const target = e.target as HTMLImageElement;
+    // 隐藏图片，显示占位符
+    target.style.display = 'none';
+};
+
 const progressValue = ref(0);
 const volumeValue = ref(playerStore.volume * 100);
 const isMuted = ref(false);
@@ -122,15 +138,16 @@ const isDragging = ref(false);
 // 拖动时的预览时间
 const draggingTime = ref(0);
 
-// 播放模式图标
+// 播放模式图标（根据主题切换）
 const playModeIcon = computed(() => {
+    const isDark = themeStore.isDark;
     switch (playerStore.playMode) {
         case PlayMode.SEQUENCE:
             return Sort;
         case PlayMode.RANDOM:
-            return Refresh;
+            return isDark ? RandomDarkIcon : RandomLightIcon;
         case PlayMode.LOOP:
-            return RefreshRight;
+            return isDark ? LoopDarkIcon : LoopIcon;
         default:
             return Sort;
     }
@@ -150,9 +167,16 @@ const playModeText = computed(() => {
     }
 });
 
-// 音量图标
+// 音量图标（根据主题切换）
 const volumeIcon = computed(() => {
-    return isMuted.value || volumeValue.value === 0 ? Mute : Microphone;
+    const isDark = themeStore.isDark;
+    const isSilent = isMuted.value || volumeValue.value === 0;
+
+    if (isDark) {
+        return isSilent ? VolumeOffDarkIcon : VolumeOnDarkIcon;
+    } else {
+        return isSilent ? VolumeOffLightIcon : VolumeOnLightIcon;
+    }
 });
 
 // 格式化时间
@@ -334,7 +358,8 @@ watch(
                     // 按需加载本地音乐文件信息
                     const localFile = await localMusicStore.getLocalFile(newSong.id);
                     if (!localFile) {
-                        handleSongLoadError("本地音乐文件不存在", false);
+                        console.error("本地音乐文件不存在:", newSong.id);
+                        playerStore.isPlaying = false;
                         return;
                     }
 
@@ -342,7 +367,8 @@ watch(
                     const fileUrl = await localMusicStore.getTrackURL(newSong.id);
 
                     if (!fileUrl) {
-                        handleSongLoadError("无法加载本地音乐文件", false);
+                        console.error("无法加载本地音乐文件:", newSong.id);
+                        playerStore.isPlaying = false;
                         return;
                     }
 
@@ -382,8 +408,7 @@ watch(
                                     await audioRef.value.play();
                                 }
                             } catch (err) {
-                                console.error("播放失败:", err);
-                                ElMessage.error("音频加载失败，请重试");
+                                console.error("本地音乐播放失败:", err);
                                 playerStore.isPlaying = false;
                             }
                         }, 100);
@@ -540,7 +565,7 @@ watch(
     }
 );
 
-// 监听currentTime变化（用于单曲循环和进度条拖动）
+// 监听currentTime变化（用于进度条拖动）
 watch(
     () => playerStore.currentTime,
     (newTime) => {
@@ -550,17 +575,6 @@ watch(
         const timeDiff = Math.abs(newTime - audioRef.value.currentTime);
         if (timeDiff > 1 && !isDragging.value) {
             audioRef.value.currentTime = newTime;
-            return;
-        }
-
-        // 如果store的时间被重置为0，且音频当前时间不是0，说明是单曲循环
-        if (newTime === 0 && audioRef.value.currentTime > 0.1) {
-            audioRef.value.currentTime = 0;
-            if (playerStore.isPlaying) {
-                audioRef.value.play().catch(err => {
-                    console.error("单曲循环播放失败:", err);
-                });
-            }
         }
     }
 );
@@ -582,6 +596,18 @@ const handleLoadedMetadata = () => {
 
 // 播放结束
 const handleEnded = () => {
+    // 单曲循环模式：重新播放当前歌曲
+    if (playerStore.playMode === PlayMode.LOOP) {
+        if (audioRef.value) {
+            audioRef.value.currentTime = 0;
+            audioRef.value.play().catch(err => {
+                console.error("单曲循环播放失败:", err);
+            });
+        }
+        return;
+    }
+
+    // 其他模式：播放下一首
     playerStore.playNext();
 };
 
@@ -705,15 +731,15 @@ onMounted(async () => {
                 // 按需加载本地音乐文件信息
                 const localFile = await localMusicStore.getLocalFile(song.id);
                 if (!localFile) {
+                    console.error("本地音乐文件不存在:", song.id);
                     playerStore.isPlaying = false;
-                    ElMessage.warning("本地音乐文件不存在");
                     return;
                 }
 
                 const fileUrl = await localMusicStore.getTrackURL(song.id);
                 if (!fileUrl) {
+                    console.error("无法加载本地音乐文件:", song.id);
                     playerStore.isPlaying = false;
-                    ElMessage.warning("无法加载本地音乐文件");
                     return;
                 }
 
@@ -882,11 +908,22 @@ onMounted(async () => {
             overflow: hidden;
             flex-shrink: 0;
             background: var(--el-fill-color-light);
+            position: relative;
 
             .song-cover {
                 width: 100%;
                 height: 100%;
                 object-fit: cover;
+            }
+
+            .song-cover-placeholder {
+                width: 100%;
+                height: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 24px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             }
         }
 
@@ -924,6 +961,7 @@ onMounted(async () => {
             display: flex;
             align-items: center;
             gap: 8px;
+            flex-shrink: 0;
 
             .el-button {
                 &.is-playing {
@@ -937,6 +975,8 @@ onMounted(async () => {
             display: flex;
             align-items: center;
             gap: 8px;
+            min-width: 200px;
+            max-width: 500px;
 
             .time {
                 font-size: 12px;
@@ -973,43 +1013,60 @@ onMounted(async () => {
                 }
             }
         }
+
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 150px;
+            min-width: 130px;
+            flex-shrink: 0;
+
+            .el-slider {
+                flex: 1;
+
+                // 移除所有 pointer 手势，使用默认光标
+                :deep(.el-slider__runway) {
+                    cursor: default !important;
+                }
+
+                :deep(.el-slider__bar) {
+                    cursor: default !important;
+                }
+
+                :deep(.el-slider__button-wrapper) {
+                    cursor: default !important;
+                }
+
+                :deep(.el-slider__button) {
+                    cursor: default !important;
+                    transition: transform 0.2s;
+                }
+
+                // 滑块悬停时的缩放效果
+                :deep(.el-slider__button-wrapper:hover .el-slider__button) {
+                    transform: scale(1.2);
+                }
+            }
+        }
     }
 
     .player-actions {
         display: flex;
         align-items: center;
         gap: 8px;
-        min-width: 120px;
+        min-width: 50px;
         flex-shrink: 0;
         justify-content: flex-end;
+    }
 
-        .volume-control {
-            width: 80px;
-            min-width: 60px;
+    // 统一设置图标尺寸
+    :deep(.el-button .el-icon) {
+        font-size: 18px;
+    }
 
-            // 移除所有 pointer 手势，使用默认光标
-            :deep(.el-slider__runway) {
-                cursor: default !important;
-            }
-
-            :deep(.el-slider__bar) {
-                cursor: default !important;
-            }
-
-            :deep(.el-slider__button-wrapper) {
-                cursor: default !important;
-            }
-
-            :deep(.el-slider__button) {
-                cursor: default !important;
-                transition: transform 0.2s;
-            }
-
-            // 滑块悬停时的缩放效果
-            :deep(.el-slider__button-wrapper:hover .el-slider__button) {
-                transform: scale(1.2);
-            }
-        }
+    :deep(.el-button--large .el-icon) {
+        font-size: 22px;
     }
 }
 

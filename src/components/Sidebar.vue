@@ -38,8 +38,6 @@
                     <Folder />
                 </el-icon>
                 <span>本地音乐</span>
-                <span class="count" v-if="localMusicStore.localFiles.length > 0">{{
-                    localMusicStore.localFiles.length }}</span>
             </div>
         </div>
 
@@ -63,7 +61,6 @@
                         <Headset />
                     </el-icon>
                     <span class="playlist-name">{{ playlist.name }}</span>
-                    <span class="count" v-if="playlist.songs.length > 0">{{ playlist.songs.length }}</span>
                 </div>
             </div>
         </div>
@@ -112,13 +109,10 @@ import { useRouter, useRoute } from "vue-router";
 import { Search, Clock, Star, Folder, Headset, Plus, Edit, Delete } from "@element-plus/icons-vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { usePlaylistStore } from "@/stores/playlist";
-import { useLocalMusicStore } from "@/stores/localMusic";
 
 const router = useRouter();
 const route = useRoute();
 const playlistStore = usePlaylistStore();
-const localMusicStore = useLocalMusicStore();
-
 const currentRoute = computed(() => route.path);
 const showCreateDialog = ref(false);
 const playlistForm = ref({
@@ -350,17 +344,6 @@ onUnmounted(() => {
             white-space: nowrap;
         }
 
-        .count {
-            flex: none;
-            font-size: 12px;
-            color: #999;
-            background: #e5e5e7;
-            padding: 2px 6px;
-            border-radius: 10px;
-            min-width: 20px;
-            text-align: center;
-        }
-
         &:hover {
             background: #ebedf0;
         }
@@ -371,11 +354,6 @@ onUnmounted(() => {
             box-shadow: 0 2px 8px rgba(40, 120, 255, 0.3);
 
             .el-icon {
-                color: white;
-            }
-
-            .count {
-                background: rgba(255, 255, 255, 0.25);
                 color: white;
             }
         }

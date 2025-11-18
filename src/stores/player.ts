@@ -133,12 +133,7 @@ export const usePlayerStore = defineStore("player", () => {
   const playNext = () => {
     if (playlist.value.length === 0) return;
 
-    if (playMode.value === PlayMode.LOOP) {
-      // 单曲循环，重置播放时间即可，不需要重新加载
-      currentTime.value = 0;
-      isPlaying.value = true;
-      return;
-    }
+    // 单曲循环只在歌曲自然结束时生效
 
     if (playMode.value === PlayMode.RANDOM) {
       currentIndex.value = Math.floor(Math.random() * playlist.value.length);
