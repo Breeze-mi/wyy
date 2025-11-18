@@ -85,9 +85,28 @@ export const useCacheStore = defineStore("cache", () => {
     console.log("已清空所有缓存");
   };
 
-  // 获取缓存大小
+  // 获取缓存大小（歌曲数量）
   const getCacheSize = (): number => {
     return songCache.value.size;
+  };
+
+  // 获取缓存信息（包括字节大小）
+  const getCacheInfo = (): { count: number; bytes: number } => {
+    const count = songCache.value.size;
+    if (count === 0) {
+      return { count: 0, bytes: 0 };
+    }
+
+    // 计算实际的JSON字符串大小
+    try {
+      const cacheObj = Object.fromEntries(songCache.value);
+      const jsonString = JSON.stringify(cacheObj);
+      const bytes = new Blob([jsonString]).size;
+      return { count, bytes };
+    } catch (error) {
+      console.error("计算缓存大小失败:", error);
+      return { count, bytes: 0 };
+    }
   };
 
   return {
@@ -96,5 +115,6 @@ export const useCacheStore = defineStore("cache", () => {
     hasCachedSong,
     clearCache,
     getCacheSize,
+    getCacheInfo,
   };
 });

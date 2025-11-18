@@ -145,26 +145,6 @@ const playerStore = usePlayerStore();
 const themeStore = useThemeStore();
 const searchStore = useSearchStore();
 
-// // 后端状态，不在首页显示
-// const backendStatus = computed(() => {
-//     const isOnline = getAPIHealthStatus();
-//     const failures = getConsecutiveFailures();
-
-//     let message = "";
-//     if (isOnline) {
-//         message = "服务器连接成功";
-//     } else if (failures >= 3) {
-//         message = "接口连接失败，请检查后重新搜索";
-//     } else {
-//         message = "服务器连接失败";
-//     }
-
-//     return {
-//         isOnline,
-//         message
-//     };
-// });
-
 const goToSettings = () => {
     router.push("/settings");
 };
@@ -576,34 +556,6 @@ onUnmounted(() => {
 
     to {
         transform: rotate(360deg);
-    }
-}
-
-@keyframes pulse-online {
-
-    0%,
-    100% {
-        opacity: 1;
-        box-shadow: 0 0 0 0 rgba(103, 194, 58, 0.7);
-    }
-
-    50% {
-        opacity: 0.8;
-        box-shadow: 0 0 0 4px rgba(103, 194, 58, 0);
-    }
-}
-
-@keyframes pulse-offline {
-
-    0%,
-    100% {
-        opacity: 1;
-        box-shadow: 0 0 0 0 rgba(245, 108, 108, 0.7);
-    }
-
-    50% {
-        opacity: 0.8;
-        box-shadow: 0 0 0 4px rgba(245, 108, 108, 0);
     }
 }
 
