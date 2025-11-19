@@ -2,7 +2,8 @@ import { app, BrowserWindow, ipcMain } from "electron";
 // import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-
+import fs from "fs/promises";
+import { existsSync } from "fs";
 // const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -76,11 +77,12 @@ app.on("activate", () => {
 });
 
 // 本地音乐文件存储 IPC 处理
-import fs from "fs/promises";
-import { existsSync } from "fs";
 
 // 存储文件路径映射
 const localMusicDir = path.join(app.getPath("userData"), "local-music");
+const audioCacheDir = path.join(app.getPath("userData"), "audio-cache");
+const coverCacheDir = path.join(app.getPath("userData"), "cover-cache");
+const lyricCacheDir = path.join(app.getPath("userData"), "lyric-cache");
 
 // 确保目录存在
 async function ensureLocalMusicDir() {
@@ -146,6 +148,164 @@ ipcMain.handle("clear-local-music", async () => {
     return { success: true };
   } catch (error: any) {
     console.error("清空音频文件失败:", error);
+    return { success: false, error: error.message };
+  }
+});
+
+// 缓存管理 IPC 处理
+
+// 确保目录存在
+async function ensureDir(dir: string) {
+  if (!existsSync(dir)) {
+    await fs.mkdir(dir, { recursive: true });
+  }
+}
+
+// 获取目录大小
+async function getDirSize(dir: string): Promise<number> {
+  if (!existsSync(dir)) return 0;
+
+  let totalSize = 0;
+  const files = await fs.readdir(dir);
+
+  for (const file of files) {
+    const filePath = path.join(dir, file);
+    const stats = await fs.stat(filePath);
+    if (stats.isFile()) {
+      totalSize += stats.size;
+    }
+  }
+
+  return totalSize;
+}
+
+// 清空目录
+async function clearDir(dir: string) {
+  if (!existsSync(dir)) return;
+
+  const files = await fs.readdir(dir);
+  await Promise.all(files.map((file) => fs.unlink(path.join(dir, file))));
+}
+
+// 保存音频缓存到文件系统
+ipcMain.handle(
+  "save-audio-cache",
+  async (_event, songId: string, buffer: ArrayBuffer, metadata: any) => {
+    try {
+      await ensureDir(audioCacheDir);
+
+      // 保存音频文件
+      const audioFilePath = path.join(audioCacheDir, `${songId}.audio`);
+      await fs.writeFile(audioFilePath, Buffer.from(buffer));
+
+      // 保存元数据
+      const metadataFilePath = path.join(audioCacheDir, `${songId}.meta.json`);
+      await fs.writeFile(metadataFilePath, JSON.stringify(metadata, null, 2));
+
+      console.log(
+        `音频缓存已保存: ${songId}, 大小: ${(
+          buffer.byteLength /
+          1024 /
+          1024
+        ).toFixed(2)} MB`
+      );
+      return { success: true };
+    } catch (error: any) {
+      console.error("保存音频缓存失败:", error);
+      return { success: false, error: error.message };
+    }
+  }
+);
+
+// 获取试听缓存大小
+ipcMain.handle("get-audio-cache-size", async () => {
+  try {
+    const size = await getDirSize(audioCacheDir);
+    return { success: true, size };
+  } catch (error: any) {
+    console.error("获取试听缓存大小失败:", error);
+    return { success: false, error: error.message, size: 0 };
+  }
+});
+
+// 清空试听缓存
+ipcMain.handle("clear-audio-cache", async () => {
+  try {
+    await clearDir(audioCacheDir);
+    console.log("试听缓存已清空");
+    return { success: true };
+  } catch (error: any) {
+    console.error("清空试听缓存失败:", error);
+    return { success: false, error: error.message };
+  }
+});
+
+// 获取封面缓存大小
+ipcMain.handle("get-cover-cache-size", async () => {
+  try {
+    const size = await getDirSize(coverCacheDir);
+    return { success: true, size };
+  } catch (error: any) {
+    console.error("获取封面缓存大小失败:", error);
+    return { success: false, error: error.message, size: 0 };
+  }
+});
+
+// 清空封面缓存
+ipcMain.handle("clear-cover-cache", async () => {
+  try {
+    await clearDir(coverCacheDir);
+    console.log("封面缓存已清空");
+    return { success: true };
+  } catch (error: any) {
+    console.error("清空封面缓存失败:", error);
+    return { success: false, error: error.message };
+  }
+});
+
+// 获取歌词缓存大小
+ipcMain.handle("get-lyric-cache-size", async () => {
+  try {
+    const size = await getDirSize(lyricCacheDir);
+    return { success: true, size };
+  } catch (error: any) {
+    console.error("获取歌词缓存大小失败:", error);
+    return { success: false, error: error.message, size: 0 };
+  }
+});
+
+// 清空歌词缓存
+ipcMain.handle("clear-lyric-cache", async () => {
+  try {
+    await clearDir(lyricCacheDir);
+    console.log("歌词缓存已清空");
+    return { success: true };
+  } catch (error: any) {
+    console.error("清空歌词缓存失败:", error);
+    return { success: false, error: error.message };
+  }
+});
+
+// 获取所有缓存统计
+ipcMain.handle("get-cache-stats", async () => {
+  try {
+    const audioSize = await getDirSize(audioCacheDir);
+    const coverSize = await getDirSize(coverCacheDir);
+    const lyricSize = await getDirSize(lyricCacheDir);
+    const localMusicSize = await getDirSize(localMusicDir);
+
+    return {
+      success: true,
+      stats: {
+        audioCache: audioSize,
+        coverCache: coverSize,
+        lyricCache: lyricSize,
+        localMusic: localMusicSize,
+        total: audioSize + coverSize + lyricSize + localMusicSize,
+      },
+    };
+  } catch (error: any) {
+    console.error("获取缓存统计失败:", error);
     return { success: false, error: error.message };
   }
 });

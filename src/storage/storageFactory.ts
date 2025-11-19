@@ -15,11 +15,22 @@ export class StorageFactory {
   // 获取存储适配器实例（单例）
   static getAdapter(): IStorageAdapter {
     if (!this.instance) {
-      this.instance = this.isElectron()
-        ? new ElectronAdapter()
-        : new IndexedDBAdapter();
+      if (this.isElectron()) {
+        // 本地音乐文件较大，应该始终使用文件系统存储
+        this.instance = new ElectronAdapter();
+        console.log("📁 使用 Electron 文件系统适配器（本地音乐）");
+      } else {
+        // Web 环境：使用 IndexedDB
+        this.instance = new IndexedDBAdapter();
+        console.log("💾 使用 IndexedDB 适配器（本地音乐）");
+      }
     }
     return this.instance;
+  }
+
+  // 获取当前使用的适配器类型
+  static getAdapterType(): "electron" | "indexeddb" {
+    return this.isElectron() ? "electron" : "indexeddb";
   }
 
   // 重置实例（用于测试）
