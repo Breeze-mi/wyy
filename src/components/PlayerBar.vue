@@ -347,19 +347,18 @@ watch(
     async (newSong, oldSong) => {
         if (newSong && audioRef.value) {
             const wasPlaying = playerStore.isPlaying;
-            const originalVolume = audioRef.value.volume;
 
             // 如果有旧歌曲正在播放，先平滑淡出
             if (oldSong && !audioRef.value.paused) {
                 await fadeOut(20); // 20ms 极速淡出
-            } else {
-                // 如果没有播放，直接静音
-                audioRef.value.volume = 0;
             }
 
             // 立即暂停并重置
             audioRef.value.pause();
             audioRef.value.currentTime = 0;
+
+            // 立即恢复正确的音量，不要延迟
+            audioRef.value.volume = playerStore.volume;
 
             // 异步添加到试听列表，不阻塞切歌流程
             Promise.resolve().then(() => {
@@ -369,13 +368,6 @@ watch(
                     console.error("添加到试听列表失败:", error);
                 }
             });
-
-            // 极速恢复音量（30ms）
-            setTimeout(() => {
-                if (audioRef.value) {
-                    audioRef.value.volume = originalVolume;
-                }
-            }, 29);
 
             try {
                 // 检查是否为本地音乐
@@ -592,6 +584,8 @@ watch(
         if (audioRef.value) {
             audioRef.value.volume = vol;
         }
+        // 同步更新音量进度条的显示值
+        volumeValue.value = vol * 100;
     }
 );
 
@@ -621,6 +615,8 @@ const handleTimeUpdate = () => {
 const handleLoadedMetadata = () => {
     if (audioRef.value) {
         playerStore.setDuration(audioRef.value.duration);
+        // 确保音量同步
+        audioRef.value.volume = playerStore.volume;
     }
 };
 
@@ -765,6 +761,13 @@ const handlePlaying = () => {
 // 组件挂载后，如果有当前歌曲但没有歌曲详情，则加载
 onMounted(async () => {
     console.log("PlayerBar mounted");
+
+    // 立即同步音量到 audio 元素
+    if (audioRef.value) {
+        audioRef.value.volume = playerStore.volume;
+        volumeValue.value = playerStore.volume * 100;
+        console.log("初始化音量:", playerStore.volume);
+    }
 
     // 检查是否有当前歌曲但没有加载详情
     if (playerStore.currentSong && !playerStore.currentSongDetail && audioRef.value) {
@@ -1083,8 +1086,32 @@ onMounted(async () => {
                     transform: scale(1.1);
                 }
 
+                // 已收藏状态：红色背景 + 白色图标
                 &.el-button--danger {
-                    color: var(--el-color-danger);
+                    background-color: var(--el-color-danger);
+                    border-color: var(--el-color-danger);
+                    color: #2ff2ef; //收藏后的星星颜色
+
+                    &:hover {
+                        background-color: var(--el-color-danger-light-3);
+                        border-color: var(--el-color-danger-light-3);
+                        color: #ffffff;
+                    }
+
+                    &:active {
+                        background-color: var(--el-color-danger-dark-2);
+                        border-color: var(--el-color-danger-dark-2);
+                        color: #0794f2;
+                    }
+                }
+
+                // 未收藏状态：默认样式
+                &.el-button--default {
+                    &:hover {
+                        color: var(--el-color-danger);
+                        border-color: var(--el-color-danger-light-5);
+                        background-color: var(--el-color-danger-light-9);
+                    }
                 }
             }
 
