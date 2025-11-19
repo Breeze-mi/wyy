@@ -198,6 +198,43 @@ export const usePlaylistStore = defineStore("playlist", () => {
     return false;
   };
 
+  // 调整歌单中歌曲的顺序
+  const reorderSongsInPlaylist = (
+    playlistId: string,
+    fromIndex: number,
+    toIndex: number
+  ) => {
+    const playlist = playlists.value.find((p) => p.id === playlistId);
+    if (
+      playlist &&
+      fromIndex >= 0 &&
+      fromIndex < playlist.songs.length &&
+      toIndex >= 0 &&
+      toIndex < playlist.songs.length
+    ) {
+      const [movedSong] = playlist.songs.splice(fromIndex, 1);
+      playlist.songs.splice(toIndex, 0, movedSong);
+      playlist.updatedAt = Date.now();
+      return true;
+    }
+    return false;
+  };
+
+  // 调整收藏列表中歌曲的顺序
+  const reorderFavoriteSongs = (fromIndex: number, toIndex: number) => {
+    if (
+      fromIndex >= 0 &&
+      fromIndex < favoriteList.value.length &&
+      toIndex >= 0 &&
+      toIndex < favoriteList.value.length
+    ) {
+      const [movedSong] = favoriteList.value.splice(fromIndex, 1);
+      favoriteList.value.splice(toIndex, 0, movedSong);
+      return true;
+    }
+    return false;
+  };
+
   // 获取歌单
   const getPlaylist = (playlistId: string) => {
     return playlists.value.find((p) => p.id === playlistId);
@@ -217,12 +254,14 @@ export const usePlaylistStore = defineStore("playlist", () => {
     removeFromFavorite,
     isFavorite,
     toggleFavorite,
+    reorderFavoriteSongs,
     // actions - 自定义歌单
     createPlaylist,
     deletePlaylist,
     updatePlaylist,
     addSongToPlaylist,
     removeSongFromPlaylist,
+    reorderSongsInPlaylist,
     getPlaylist,
   };
 });

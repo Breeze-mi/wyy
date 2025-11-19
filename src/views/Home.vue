@@ -40,7 +40,7 @@
                             <div class="col-album">专辑名</div>
                             <div class="col-actions">操作</div>
                         </div>
-                        <div class="table-body">
+                        <div class="table-body" ref="tableBodyRef">
                             <div v-for="(song, index) in searchStore.searchResults" :key="song.id" class="table-row"
                                 @click="handleSongClick(song, index, $event)" @dblclick="handlePlaySong(song)"
                                 @contextmenu.prevent="handleContextMenu($event, song)" :class="{
@@ -67,14 +67,15 @@
                                     <el-button text :icon="Download" title="下载" />
                                 </div>
                             </div>
-                        </div>
-                    </div>
 
-                    <!-- 分页组件 -->
-                    <div v-if="searchStore.totalPages > 1" class="pagination">
-                        <el-pagination v-model:current-page="searchStore.currentPage" :page-size="searchStore.pageSize"
-                            :total="searchStore.total" layout="prev, pager, next" :hide-on-single-page="false"
-                            @current-change="handlePageChange" />
+                            <!-- 分页组件 - 作为列表的一部分，随滚动自然出现 -->
+                            <div v-if="searchStore.totalPages > 1" class="pagination-in-list">
+                                <el-pagination v-model:current-page="searchStore.currentPage"
+                                    :page-size="searchStore.pageSize" :total="searchStore.total"
+                                    layout="prev, pager, next" :hide-on-single-page="false"
+                                    @current-change="handlePageChange" />
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -154,7 +155,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, onUnmounted, computed } from "vue";
+import { onMounted, ref, onUnmounted, computed, watch } from "vue";
 import { useRouter } from "vue-router";
 import { VideoPlay, Plus, Download, DArrowRight, Star, Setting, Sunny, Moon, FolderAdd, ArrowRight } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
@@ -175,7 +176,8 @@ const navigateToSettings = () => {
     router.push("/settings");
 };
 
-
+// 分页控制
+const tableBodyRef = ref<HTMLElement>();
 
 const handlePageChange = (page: number) => {
     searchStore.setCurrentPage(page);
@@ -183,7 +185,9 @@ const handlePageChange = (page: number) => {
     selectedSongs.value.clear();
     lastSelectedIndex.value = null;
     // 滚动到顶部
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (tableBodyRef.value) {
+        tableBodyRef.value.scrollTop = 0;
+    }
 };
 
 const handlePlaySong = (song: Song) => {
@@ -203,7 +207,7 @@ const handleAddToPlaylist = (song: Song) => {
 
 // 处理歌曲点击（支持多选）
 const handleSongClick = (song: Song, index: number, event: MouseEvent) => {
-    // Ctrl/Cmd + 点击：多选
+    // Ctrl/Cmd + 点击：多选/取消选择
     if (event.ctrlKey || event.metaKey) {
         event.preventDefault();
         if (selectedSongs.value.has(song.id)) {
@@ -217,23 +221,36 @@ const handleSongClick = (song: Song, index: number, event: MouseEvent) => {
         }
     }
     // Shift + 点击：范围选择
-    else if (event.shiftKey && lastSelectedIndex.value !== null) {
+    else if (event.shiftKey) {
         event.preventDefault();
-        const start = Math.min(lastSelectedIndex.value, index);
-        const end = Math.max(lastSelectedIndex.value, index);
-        selectedSongs.value.clear();
-        for (let i = start; i <= end; i++) {
-            if (searchStore.searchResults[i]) {
-                selectedSongs.value.add(searchStore.searchResults[i].id);
+        // 如果没有上次选中的索引，从当前位置开始
+        if (lastSelectedIndex.value === null) {
+            selectedSongs.value.clear();
+            selectedSongs.value.add(song.id);
+            lastSelectedIndex.value = index;
+        } else {
+            // 范围选择
+            const start = Math.min(lastSelectedIndex.value, index);
+            const end = Math.max(lastSelectedIndex.value, index);
+            selectedSongs.value.clear();
+            for (let i = start; i <= end; i++) {
+                if (searchStore.searchResults[i]) {
+                    selectedSongs.value.add(searchStore.searchResults[i].id);
+                }
             }
         }
     }
-    // 普通点击：清空选中
+    // 普通点击：单选或清空
     else {
-        if (selectedSongs.value.size > 0) {
-            selectedSongs.value.clear();
-            lastSelectedIndex.value = null;
+        // 如果点击的是已选中的歌曲，保持选中状态
+        if (selectedSongs.value.has(song.id) && selectedSongs.value.size === 1) {
+            // 不做任何操作，保持选中
+            return;
         }
+        // 否则清空其他选中，只选中当前歌曲
+        selectedSongs.value.clear();
+        selectedSongs.value.add(song.id);
+        lastSelectedIndex.value = index;
     }
 };
 
@@ -387,6 +404,13 @@ onUnmounted(() => {
     document.removeEventListener("click", handleClickOutside);
 });
 
+// 监听搜索结果变化，滚动到顶部
+watch(() => searchStore.searchResults, () => {
+    if (tableBodyRef.value) {
+        tableBodyRef.value.scrollTop = 0;
+    }
+});
+
 </script>
 
 <style scoped lang="scss">
@@ -475,6 +499,7 @@ onUnmounted(() => {
                     top: 0;
                     z-index: 10;
                     border-bottom: 1px solid #f0f0f0;
+                    min-width: 0;
 
                     .col-index {
                         width: 50px;
@@ -507,6 +532,7 @@ onUnmounted(() => {
                 .table-body {
                     flex: 1;
                     overflow-y: auto;
+                    overflow-x: hidden;
 
                     .table-row {
                         display: flex;
@@ -515,6 +541,9 @@ onUnmounted(() => {
                         cursor: pointer;
                         transition: all 0.2s;
                         border-bottom: 1px solid #f7f7f7;
+                        user-select: none;
+                        /* 禁止文字选择 */
+                        min-width: 0;
 
                         &:hover {
                             background: #f7f7f7;
@@ -605,12 +634,12 @@ onUnmounted(() => {
             }
         }
 
-        .pagination {
-            padding: 20px 0;
+        .pagination-in-list {
+            padding: 30px 0 20px 0;
             display: flex;
             justify-content: center;
             align-items: center;
-            flex-shrink: 0;
+            background: white;
 
             :deep(.el-pagination) {
 

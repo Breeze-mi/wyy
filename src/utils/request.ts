@@ -1,9 +1,10 @@
 import { ElMessage } from "element-plus";
 
 // 网易云音乐 API 基础地址
-const BASE_URL = "http://10.91.84.162:5000";
+// const BASE_URL = "http://10.91.84.162:5000";
+// const BASE_URL = "http://0.0.0.0:5000";
 
-// const BASE_URL = "http://10.22.19.155:5000";
+const BASE_URL = "http://10.22.19.155:5000";
 
 // 请求超时时间（毫秒）
 const TIMEOUT = 30000;
@@ -62,10 +63,13 @@ const requestInterceptor = (config: RequestConfig): RequestConfig => {
   //   };
   // }
 
-  console.log(
-    `[Request] ${config.method} ${config.url}`,
-    config.data || config.params
-  );
+  // 仅在开发环境打印请求日志
+  if (import.meta.env.DEV) {
+    console.log(
+      `[Request] ${config.method} ${config.url}`,
+      config.data || config.params
+    );
+  }
 
   return config;
 };
@@ -76,7 +80,10 @@ const responseInterceptor = async <T>(
 ): Promise<Response<T>> => {
   const data = await response.json();
 
-  console.log(`[Response] ${response.status} ${response.url}`, data);
+  // 仅在开发环境打印响应日志
+  if (import.meta.env.DEV) {
+    console.log(`[Response] ${response.status} ${response.url}`, data);
+  }
 
   // 检查响应状态
   if (!response.ok) {
@@ -188,9 +195,11 @@ const fetchWithRetry = async <T>(
         (error instanceof RequestError && error.status && error.status >= 500)); // 服务器错误
 
     if (shouldRetry) {
-      console.log(
-        `[Retry] ${retryCount + 1}/${config.retries ?? MAX_RETRIES} ${url}`
-      );
+      if (import.meta.env.DEV) {
+        console.log(
+          `[Retry] ${retryCount + 1}/${config.retries ?? MAX_RETRIES} ${url}`
+        );
+      }
       await delay(1000 * (retryCount + 1)); // 递增延迟
       return fetchWithRetry<T>(config, retryCount + 1);
     }
@@ -287,9 +296,11 @@ export const checkAPIHealth = async (): Promise<boolean> => {
     consecutiveFailures = 0; // 重置失败计数
 
     if (wasUnhealthy) {
-      console.log("✅ 服务器已恢复");
+      if (import.meta.env.DEV) {
+        console.log("✅ 服务器已恢复");
+      }
       ElMessage.success("后端服务已恢复连接");
-    } else {
+    } else if (import.meta.env.DEV) {
       console.log("✅ 服务器正常");
     }
     return true;
@@ -327,7 +338,9 @@ export const getConsecutiveFailures = (): number => {
 export const resetAPIHealthStatus = (): void => {
   consecutiveFailures = 0; // 重置失败计数
   isAPIHealthy = true; // 重置健康状态
-  console.log("🔄 用户发起搜索，健康检查状态已重置");
+  if (import.meta.env.DEV) {
+    console.log("🔄 用户发起搜索，健康检查状态已重置");
+  }
 };
 
 export default Request;

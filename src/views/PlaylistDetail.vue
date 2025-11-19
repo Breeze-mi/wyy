@@ -46,9 +46,14 @@
                     <div v-for="(song, index) in songs" :key="song.id" class="table-row" :class="[
                         playerStore.currentSong?.id === song.id ? 'is-playing' : '',
                         selectedSongs.has(song.id) ? 'is-selected' : '',
-                        isLocalPlaylist && !localMusicStore.isFileValid(song.id) ? 'is-invalid' : ''
-                    ]" @click="handleSongClick(song, index, $event)" @dblclick="handlePlaySong(song)"
-                        @contextmenu.prevent="handleContextMenu($event, song)">
+                        isLocalPlaylist && !localMusicStore.isFileValid(song.id) ? 'is-invalid' : '',
+                        draggedIndex === index ? 'is-dragging' : '',
+                        dragOverIndex === index ? 'drag-over' : ''
+                    ]" :draggable="canReorder" @click="handleSongClick(song, index, $event)"
+                        @dblclick="handlePlaySong(song)" @contextmenu.prevent="handleContextMenu($event, song)"
+                        @dragstart="handleDragStart(index, $event)" @dragend="handleDragEnd"
+                        @dragover.prevent="handleDragOver(index, $event)" @dragleave="handleDragLeave"
+                        @drop.prevent="handleDrop(index, $event)">
                         <div class="col-index">
                             <span v-if="playerStore.currentSong?.id !== song.id">{{ index + 1 }}</span>
                             <el-icon v-else class="playing-icon">
@@ -247,7 +252,7 @@ const handleQuickToggleFavorite = (song: Song) => {
 
 // 处理歌曲点击（支持多选）
 const handleSongClick = (song: Song, index: number, event: MouseEvent) => {
-    // Ctrl/Cmd + 点击：多选
+    // Ctrl/Cmd + 点击：多选/取消选择
     if (event.ctrlKey || event.metaKey) {
         event.preventDefault();
         if (selectedSongs.value.has(song.id)) {
@@ -261,23 +266,36 @@ const handleSongClick = (song: Song, index: number, event: MouseEvent) => {
         }
     }
     // Shift + 点击：范围选择
-    else if (event.shiftKey && lastSelectedIndex.value !== null) {
+    else if (event.shiftKey) {
         event.preventDefault();
-        const start = Math.min(lastSelectedIndex.value, index);
-        const end = Math.max(lastSelectedIndex.value, index);
-        selectedSongs.value.clear();
-        for (let i = start; i <= end; i++) {
-            if (songs.value[i]) {
-                selectedSongs.value.add(songs.value[i].id);
+        // 如果没有上次选中的索引，从当前位置开始
+        if (lastSelectedIndex.value === null) {
+            selectedSongs.value.clear();
+            selectedSongs.value.add(song.id);
+            lastSelectedIndex.value = index;
+        } else {
+            // 范围选择
+            const start = Math.min(lastSelectedIndex.value, index);
+            const end = Math.max(lastSelectedIndex.value, index);
+            selectedSongs.value.clear();
+            for (let i = start; i <= end; i++) {
+                if (songs.value[i]) {
+                    selectedSongs.value.add(songs.value[i].id);
+                }
             }
         }
     }
-    // 普通点击：清空选中
+    // 普通点击：单选或清空
     else {
-        if (selectedSongs.value.size > 0) {
-            selectedSongs.value.clear();
-            lastSelectedIndex.value = null;
+        // 如果点击的是已选中的歌曲，保持选中状态
+        if (selectedSongs.value.has(song.id) && selectedSongs.value.size === 1) {
+            // 不做任何操作，保持选中
+            return;
         }
+        // 否则清空其他选中，只选中当前歌曲
+        selectedSongs.value.clear();
+        selectedSongs.value.add(song.id);
+        lastSelectedIndex.value = index;
     }
 };
 
@@ -461,6 +479,13 @@ const showPlaylistSubmenu = ref(false);
 const selectedSongs = ref<Set<string>>(new Set());
 const lastSelectedIndex = ref<number | null>(null);
 
+// 拖拽状态
+const draggedIndex = ref<number | null>(null);
+const dragOverIndex = ref<number | null>(null);
+
+// 是否支持排序（只有自定义歌单和我喜欢支持）
+const canReorder = computed(() => !isHistoryPlaylist.value && !isLocalPlaylist.value);
+
 // 显示右键菜单
 const handleContextMenu = (event: MouseEvent, song: Song) => {
     event.preventDefault();
@@ -538,6 +563,66 @@ const handleCleanInvalidFiles = async () => {
     } catch {
         // 用户取消
     }
+};
+
+// 拖拽开始
+const handleDragStart = (index: number, event: DragEvent) => {
+    if (!canReorder.value) return;
+    draggedIndex.value = index;
+    if (event.dataTransfer) {
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', index.toString());
+    }
+};
+
+// 拖拽结束
+const handleDragEnd = () => {
+    draggedIndex.value = null;
+    dragOverIndex.value = null;
+};
+
+// 拖拽经过
+const handleDragOver = (index: number, _event: DragEvent) => {
+    if (!canReorder.value) return;
+    if (draggedIndex.value === null || draggedIndex.value === index) return;
+    dragOverIndex.value = index;
+};
+
+// 拖拽离开
+const handleDragLeave = () => {
+    dragOverIndex.value = null;
+};
+
+// 放置
+const handleDrop = (targetIndex: number, _event: DragEvent) => {
+    if (!canReorder.value || draggedIndex.value === null) {
+        dragOverIndex.value = null;
+        return;
+    }
+
+    const fromIndex = draggedIndex.value;
+    if (fromIndex === targetIndex) {
+        draggedIndex.value = null;
+        dragOverIndex.value = null;
+        return;
+    }
+
+    // 计算实际插入位置
+    let actualTargetIndex = targetIndex;
+    if (fromIndex < targetIndex) {
+        actualTargetIndex = targetIndex - 1;
+    }
+
+    // 执行排序
+    if (isFavoritePlaylist.value) {
+        playlistStore.reorderFavoriteSongs(fromIndex, actualTargetIndex);
+    } else if (!isBuiltinPlaylist.value) {
+        playlistStore.reorderSongsInPlaylist(playlistId.value, fromIndex, actualTargetIndex);
+    }
+
+    draggedIndex.value = null;
+    dragOverIndex.value = null;
+    ElMessage.success("已调整歌曲顺序");
 };
 
 onMounted(() => {
@@ -652,12 +737,37 @@ onUnmounted(() => {
                     cursor: pointer;
                     transition: all 0.2s;
                     border-radius: 4px;
+                    user-select: none;
+                    /* 禁止文字选择 */
+                    position: relative;
 
                     &:hover {
                         background: var(--el-fill-color-light);
 
                         .col-actions {
                             opacity: 1;
+                        }
+                    }
+
+                    &.is-dragging {
+                        opacity: 0.5;
+                        transform: scale(0.98);
+                    }
+
+                    &.drag-over {
+                        border-top: 3px solid var(--el-color-primary);
+                        margin-top: -1px;
+
+                        &::before {
+                            content: '';
+                            position: absolute;
+                            top: -4px;
+                            left: 0;
+                            width: 8px;
+                            height: 8px;
+                            background: var(--el-color-primary);
+                            border-radius: 50%;
+                            z-index: 10;
                         }
                     }
 

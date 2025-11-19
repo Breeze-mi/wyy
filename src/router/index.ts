@@ -19,6 +19,7 @@ const routes = [
     path: "/song-detail",
     name: "SongDetail",
     component: SongDetail,
+    meta: { fullscreen: true }, // 标记为全屏页面
   },
   {
     path: "/playlist/:id",

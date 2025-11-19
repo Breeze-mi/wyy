@@ -31,6 +31,9 @@
             <div class="volume-control">
                 <el-button circle :icon="volumeIcon" @click="toggleMute" />
                 <el-slider v-model="volumeValue" :show-tooltip="false" @input="handleVolumeChange" />
+                <el-button circle :icon="isFavorite ? StarFilledIcon : StarIcon" @click="toggleFavorite"
+                    :title="isFavorite ? '取消收藏' : '收藏'" :type="isFavorite ? 'danger' : 'default'"
+                    :disabled="!playerStore.currentSong" class="favorite-button" />
             </div>
         </div>
 
@@ -54,6 +57,8 @@ import {
     DArrowLeft,
     DArrowRight,
     Sort,
+    Star,
+    StarFilled,
 } from "@element-plus/icons-vue";
 import { usePlayerStore, PlayMode } from "@/stores/player";
 import { useCacheStore } from "@/stores/cache";
@@ -96,6 +101,8 @@ try {
     // 提供默认的空实现
     playlistStore = {
         addToHistory: () => { },
+        isFavorite: () => false,
+        toggleFavorite: () => false,
     } as any;
     localMusicStore = {
         isLocalMusic: () => false,
@@ -166,6 +173,24 @@ const playModeText = computed(() => {
             return "顺序播放";
     }
 });
+
+// 收藏相关
+const StarIcon = Star;
+const StarFilledIcon = StarFilled;
+
+// 判断当前歌曲是否已收藏
+const isFavorite = computed(() => {
+    if (!playerStore.currentSong) return false;
+    return playlistStore.isFavorite(playerStore.currentSong.id);
+});
+
+// 切换收藏状态
+const toggleFavorite = () => {
+    if (!playerStore.currentSong) return;
+
+    const isFav = playlistStore.toggleFavorite(playerStore.currentSong);
+    ElMessage.success(isFav ? "已添加到我喜欢" : "已取消收藏");
+};
 
 // 音量图标（根据主题切换）
 const volumeIcon = computed(() => {
@@ -350,7 +375,7 @@ watch(
                 if (audioRef.value) {
                     audioRef.value.volume = originalVolume;
                 }
-            }, 30);
+            }, 29);
 
             try {
                 // 检查是否为本地音乐
@@ -536,11 +561,16 @@ watch(
                 try {
                     // 确保音频已加载
                     if (audioRef.value.readyState >= 2) {
-                        console.log("尝试播放音频，readyState:", audioRef.value.readyState);
+                        if (import.meta.env.DEV) {
+                            console.log("尝试播放音频，readyState:", audioRef.value.readyState);
+                        }
                         await audioRef.value.play();
                     } else {
-                        console.log("音频未准备好，readyState:", audioRef.value.readyState);
-                        // 音频未准备好，等待 canplay 事件
+                        if (import.meta.env.DEV) {
+                            console.log("音频未准备好，readyState:", audioRef.value.readyState);
+                        }
+                        // 音频未准备好，等待 canplay 事件后自动播放
+                        // handleCanPlay 函数会处理自动播放
                     }
                 } catch (err) {
                     console.error("播放失败:", err);
@@ -596,6 +626,10 @@ const handleLoadedMetadata = () => {
 
 // 播放结束
 const handleEnded = () => {
+    if (import.meta.env.DEV) {
+        console.log("歌曲播放结束，当前模式:", playerStore.playMode);
+    }
+
     // 单曲循环模式：重新播放当前歌曲
     if (playerStore.playMode === PlayMode.LOOP) {
         if (audioRef.value) {
@@ -608,6 +642,7 @@ const handleEnded = () => {
     }
 
     // 其他模式：播放下一首
+    // 确保播放状态为 true，这样切换歌曲后会自动播放
     playerStore.playNext();
 };
 
@@ -661,12 +696,16 @@ const handlePause = () => {
     }
 
     // 其他情况下，如果音频暂停了，同步状态
-    console.log("音频暂停");
+    if (import.meta.env.DEV) {
+        console.log("音频暂停");
+    }
 };
 
 // 音频播放事件
 const handlePlay = () => {
-    console.log("音频开始播放");
+    if (import.meta.env.DEV) {
+        console.log("音频开始播放");
+    }
 };
 
 // 音频错误事件
@@ -685,12 +724,16 @@ const handleError = (e: Event) => {
 
 // 音频缓冲中
 const handleWaiting = () => {
-    console.log("音频缓冲中...");
+    if (import.meta.env.DEV) {
+        console.log("音频缓冲中...");
+    }
 };
 
 // 音频可以播放
 const handleCanPlay = () => {
-    console.log("音频已准备好播放");
+    if (import.meta.env.DEV) {
+        console.log("音频已准备好播放");
+    }
     // 如果应该播放但当前是暂停状态，尝试播放
     if (playerStore.isPlaying && audioRef.value && audioRef.value.paused && !isRecovering.value) {
         isRecovering.value = true;
@@ -706,12 +749,16 @@ const handleCanPlay = () => {
 
 // 音频停滞事件
 const handleStalled = () => {
-    console.log("音频加载停滞");
+    if (import.meta.env.DEV) {
+        console.log("音频加载停滞");
+    }
 };
 
 // 音频暂停后恢复
 const handlePlaying = () => {
-    console.log("音频正在播放");
+    if (import.meta.env.DEV) {
+        console.log("音频正在播放");
+    }
     isRecovering.value = false;
 };
 
@@ -1018,9 +1065,28 @@ onMounted(async () => {
             display: flex;
             align-items: center;
             gap: 8px;
-            width: 150px;
-            min-width: 130px;
+            width: 260px;
+            min-width: 240px;
             flex-shrink: 0;
+
+            .el-slider {
+                flex: 1;
+                min-width: 120px;
+            }
+
+            .favorite-button {
+                flex-shrink: 0;
+                transition: all 0.3s;
+                margin-left: 14px;
+
+                &:hover:not(:disabled) {
+                    transform: scale(1.1);
+                }
+
+                &.el-button--danger {
+                    color: var(--el-color-danger);
+                }
+            }
 
             .el-slider {
                 flex: 1;

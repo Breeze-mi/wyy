@@ -51,11 +51,6 @@
                         @dragover.prevent="handleDragOver(index, $event)" @dragleave="handleDragLeave"
                         @drop.prevent="handleDrop(index, $event)" @dblclick="handlePlaySong(index)"
                         @click="handleSongClick(index, $event)">
-                        <div class="drag-handle">
-                            <el-icon>
-                                <DCaret />
-                            </el-icon>
-                        </div>
                         <div class="item-index">
                             <span v-if="index !== playerStore.currentIndex" class="index-number">{{ index + 1 }}</span>
                             <el-icon v-else class="playing-icon" :class="{ 'is-animating': playerStore.isPlaying }">
@@ -80,7 +75,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from "vue";
-import { Delete, VideoPlay, Close, DCaret } from "@element-plus/icons-vue";
+import { Delete, VideoPlay, Close } from "@element-plus/icons-vue";
 import { usePlayerStore } from "@/stores/player";
 import { ElMessageBox, ElMessage } from "element-plus";
 
@@ -136,13 +131,11 @@ onUnmounted(() => {
 
 // 处理歌曲点击（支持多选）
 const handleSongClick = (index: number, event: MouseEvent) => {
-    // 只有按住 Ctrl/Cmd 时才进行多选操作
+    // Ctrl/Cmd + 点击：多选/取消选择
     if (event.ctrlKey || event.metaKey) {
-        event.preventDefault(); // 阻止默认行为
-        // Ctrl/Cmd + 点击：切换选中状态
+        event.preventDefault();
         if (selectedIndices.value.has(index)) {
             selectedIndices.value.delete(index);
-            // 如果取消选中后没有选中项，清空 lastSelectedIndex
             if (selectedIndices.value.size === 0) {
                 lastSelectedIndex.value = null;
             }
@@ -150,21 +143,36 @@ const handleSongClick = (index: number, event: MouseEvent) => {
             selectedIndices.value.add(index);
             lastSelectedIndex.value = index;
         }
-    } else if (event.shiftKey && lastSelectedIndex.value !== null) {
-        event.preventDefault(); // 阻止默认行为
-        // Shift + 点击：范围选择
-        const start = Math.min(lastSelectedIndex.value, index);
-        const end = Math.max(lastSelectedIndex.value, index);
-        selectedIndices.value.clear();
-        for (let i = start; i <= end; i++) {
-            selectedIndices.value.add(i);
-        }
-    } else {
-        // 普通点击：清空选中状态，不做其他操作（保留拖拽功能）
-        if (selectedIndices.value.size > 0) {
+    }
+    // Shift + 点击：范围选择
+    else if (event.shiftKey) {
+        event.preventDefault();
+        // 如果没有上次选中的索引，从当前位置开始
+        if (lastSelectedIndex.value === null) {
             selectedIndices.value.clear();
-            lastSelectedIndex.value = null;
+            selectedIndices.value.add(index);
+            lastSelectedIndex.value = index;
+        } else {
+            // 范围选择
+            const start = Math.min(lastSelectedIndex.value, index);
+            const end = Math.max(lastSelectedIndex.value, index);
+            selectedIndices.value.clear();
+            for (let i = start; i <= end; i++) {
+                selectedIndices.value.add(i);
+            }
         }
+    }
+    // 普通点击：单选或清空
+    else {
+        // 如果点击的是已选中的歌曲，保持选中状态
+        if (selectedIndices.value.has(index) && selectedIndices.value.size === 1) {
+            // 不做任何操作，保持选中
+            return;
+        }
+        // 否则清空其他选中，只选中当前歌曲
+        selectedIndices.value.clear();
+        selectedIndices.value.add(index);
+        lastSelectedIndex.value = index;
     }
 };
 
@@ -598,10 +606,6 @@ const handleDrop = (targetIndex: number, event: DragEvent) => {
                 .item-actions {
                     opacity: 1;
                 }
-
-                .drag-handle {
-                    opacity: 1;
-                }
             }
 
             &.is-playing {
@@ -652,38 +656,6 @@ const handleDrop = (targetIndex: number, event: DragEvent) => {
                     border-radius: 50%;
                     z-index: 10;
                 }
-            }
-
-            .drag-handle {
-                width: 16px;
-                flex-shrink: 0;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                opacity: 0;
-                transition: opacity 0.2s;
-                cursor: grab;
-                color: var(--el-text-color-secondary);
-                touch-action: none;
-
-                &:hover {
-                    color: var(--el-color-primary);
-                }
-
-                &:active {
-                    cursor: grabbing;
-                }
-
-                .el-icon {
-                    font-size: 13px;
-                    transform: rotate(90deg);
-                }
-            }
-
-            // 选中状态下隐藏拖拽手柄
-            &.is-selected .drag-handle {
-                opacity: 0 !important;
-                pointer-events: none;
             }
 
             .item-index {

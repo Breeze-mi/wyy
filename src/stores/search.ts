@@ -26,7 +26,7 @@ export const useSearchStore = defineStore("search", () => {
   // 当前页码
   const currentPage = ref(savedState.currentPage);
   // 每页显示数量
-  const pageSize = ref(30);
+  const pageSize = ref(25);
   // 总结果数
   const total = ref(savedState.total);
 
