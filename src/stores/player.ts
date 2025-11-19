@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import { ref, computed, watch } from "vue";
 import type { Song, SongDetail } from "@/api/music";
 import { persist } from "@/utils/persist";
+import { tabSync } from "@/utils/sync";
 
 // 播放模式
 export enum PlayMode {
@@ -47,20 +48,49 @@ export const usePlayerStore = defineStore("player", () => {
   // 是否显示歌曲详情页
   const showDetail = ref(false);
 
-  // 监听状态变化，自动保存
+  // 标志：是否正在从其他标签页同步数据（避免循环广播）
+  let isSyncing = false;
+
+  // 监听状态变化，自动保存并同步到其他标签页
+  // 注意：不同步 isPlaying 和 currentTime，因为每个标签页应该独立控制播放
   watch(
     [playlist, currentIndex, playMode, volume, savedProgress],
     () => {
-      persist.save(STORAGE_KEY, {
+      // 如果正在同步，跳过广播
+      if (isSyncing) return;
+
+      const state = {
         playlist: playlist.value,
         currentIndex: currentIndex.value,
         playMode: playMode.value,
         volume: volume.value,
         savedProgress: savedProgress.value,
-      });
+      };
+      persist.save(STORAGE_KEY, state);
+
+      // 广播到其他标签页
+      tabSync.broadcast("player", state);
     },
     { deep: true }
   );
+
+  // 订阅其他标签页的更新
+  tabSync.subscribe("player", (data) => {
+    // 设置同步标志，避免触发 watch 导致循环广播
+    isSyncing = true;
+
+    // 更新本地状态
+    playlist.value = data.playlist || [];
+    currentIndex.value = data.currentIndex ?? -1;
+    playMode.value = data.playMode || PlayMode.SEQUENCE;
+    volume.value = data.volume ?? 0.7;
+    savedProgress.value = data.savedProgress || {};
+
+    // 重置同步标志
+    setTimeout(() => {
+      isSyncing = false;
+    }, 0);
+  });
 
   // 当前播放歌曲
   const currentSong = computed(() => {

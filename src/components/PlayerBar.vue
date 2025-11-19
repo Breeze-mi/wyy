@@ -341,11 +341,25 @@ const fadeOut = async (duration: number = 20): Promise<void> => {
     }
 };
 
+// 记录当前加载的歌曲ID，防止重复加载
+let currentLoadingSongId = ref<string | null>(null);
+
 // 监听当前歌曲变化，加载音频
 watch(
     () => playerStore.currentSong,
     async (newSong, oldSong) => {
         if (newSong && audioRef.value) {
+            // 防止重复加载同一首歌
+            if (newSong.id === currentLoadingSongId.value) {
+                return;
+            }
+
+            // 如果是同一首歌（ID相同），不需要重新加载
+            if (oldSong && newSong.id === oldSong.id) {
+                return;
+            }
+
+            currentLoadingSongId.value = newSong.id;
             const wasPlaying = playerStore.isPlaying;
 
             // 如果有旧歌曲正在播放，先平滑淡出

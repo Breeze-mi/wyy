@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import { ref, watch } from "vue";
 import type { Song } from "@/api/music";
 import { persist } from "@/utils/persist";
+import { tabSync } from "@/utils/sync";
 
 // 歌单类型
 export interface CustomPlaylist {
@@ -47,22 +48,48 @@ export const usePlaylistStore = defineStore("playlist", () => {
   // 我喜欢/收藏列表
   const favoriteList = ref<Song[]>(savedState.favoriteList);
 
-  // 监听状态变化，自动保存
+  // 标志：是否正在从其他标签页同步数据（避免循环广播）
+  let isSyncing = false;
+
+  // 监听状态变化，自动保存并同步到其他标签页
   watch(
     [playlists, historyList, favoriteList],
     () => {
+      // 如果正在同步，跳过广播
+      if (isSyncing) return;
+
       try {
-        persist.save(STORAGE_KEY, {
+        const state = {
           playlists: playlists.value,
           historyList: historyList.value,
           favoriteList: favoriteList.value,
-        });
+        };
+        persist.save(STORAGE_KEY, state);
+
+        // 广播到其他标签页
+        tabSync.broadcast("playlist", state);
       } catch (error) {
         console.error("保存歌单数据失败:", error);
       }
     },
     { deep: true }
   );
+
+  // 订阅其他标签页的更新
+  tabSync.subscribe("playlist", (data) => {
+    // 设置同步标志，避免触发 watch 导致循环广播
+    isSyncing = true;
+
+    // 更新本地状态
+    playlists.value = data.playlists || [];
+    historyList.value = data.historyList || [];
+    favoriteList.value = data.favoriteList || [];
+
+    // 重置同步标志
+    setTimeout(() => {
+      isSyncing = false;
+    }, 0);
+  });
 
   // ========== 试听列表（历史记录）==========
   // 添加到试听列表
