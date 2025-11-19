@@ -86,9 +86,10 @@
                     <el-button type="danger" @click="handleClearCoverCache"
                         :disabled="cacheInfo.count === 0">清空缓存</el-button>
                 </div>
-                <div class="setting-item">
+                <!-- 存储统计：仅在开发环境显示 -->
+                <div class="setting-item" v-if="settingsStore.isDevelopment()">
                     <div class="setting-info">
-                        <div class="setting-title">存储统计</div>
+                        <div class="setting-title">存储统计 <el-tag size="small" type="warning">开发模式</el-tag></div>
                         <div class="setting-desc">
                             <div>试听缓存：{{ formatBytes(audioCacheInfo.totalSize) }}</div>
                             <div>歌曲信息：{{ cacheInfo.size }}</div>
@@ -119,16 +120,21 @@
                 </div>
             </div>
 
-            <!-- 网络设置 -->
-            <div class="settings-section" v-if="settingsStore.isElectron()">
+            <!-- 网络设置：开发环境或 Electron 环境显示 -->
+            <div class="settings-section" v-if="settingsStore.isDevelopment() || settingsStore.isElectron()">
                 <h2>网络</h2>
                 <div class="setting-item">
                     <div class="setting-info">
                         <div class="setting-title">API服务器地址</div>
-                        <div class="setting-desc">自定义后端API地址，留空使用默认地址</div>
+                        <div class="setting-desc">
+                            自定义后端API地址，留空使用默认地址。保存后立即生效，无需重启。
+                            <div v-if="currentApiUrl" style="margin-top: 4px;">
+                                <el-text size="small" type="info">当前使用：{{ currentApiUrl }}</el-text>
+                            </div>
+                        </div>
                     </div>
                     <div class="api-input-group">
-                        <el-input v-model="apiUrlInput" placeholder="http://localhost:3000" style="width: 300px"
+                        <el-input v-model="apiUrlInput" placeholder="http://localhost:5000" style="width: 300px"
                             clearable />
                         <el-button type="primary" @click="handleSaveApiUrl">保存</el-button>
                         <el-button @click="handleResetApiUrl">重置</el-button>
@@ -170,6 +176,7 @@ import { useSettingsStore } from "@/stores/settings";
 import { usePlaylistStore } from "@/stores/playlist";
 import { useAudioCacheStore } from "@/stores/audioCache";
 import { StorageFactory } from "@/storage/storageFactory";
+import { resetAPIHealthStatus } from "@/utils/request";
 
 const router = useRouter();
 const themeStore = useThemeStore();
@@ -180,6 +187,20 @@ const audioCacheStore = useAudioCacheStore();
 
 // API地址输入框
 const apiUrlInput = ref(settingsStore.apiBaseUrl);
+
+// 当前实际使用的 API 地址
+const currentApiUrl = computed(() => {
+    // 优先使用自定义地址
+    if (settingsStore.apiBaseUrl && settingsStore.apiBaseUrl.trim()) {
+        return settingsStore.apiBaseUrl.trim();
+    }
+    // 使用环境变量地址
+    if (import.meta.env.VITE_API_BASE_URL) {
+        return import.meta.env.VITE_API_BASE_URL;
+    }
+    // 默认地址
+    return "http://localhost:5000";
+});
 
 // IndexedDB存储信息（本地音乐）
 const indexedDBInfo = ref({
@@ -460,16 +481,59 @@ const handleSaveApiUrl = () => {
         ElMessage.warning("请输入有效的URL地址（以http://或https://开头）");
         return;
     }
+
+    // 保存到 store（会自动保存到 localStorage）
     settingsStore.setApiBaseUrl(url);
-    ElMessage.success("API地址已保存，重启应用后生效");
+
+    // 🔧 重置 API 健康检查状态（关键修复）
+    // 清除之前的失败记录，允许使用新地址重新连接
+    resetAPIHealthStatus();
+
+    // 立即生效提示
+    ElMessage.success({
+        message: "API地址已更新",
+        duration: 1500
+    });
+
+    // // 可选：测试新地址是否可用
+    // testApiConnection(url || currentApiUrl.value);
 };
 
 // 重置API地址
 const handleResetApiUrl = () => {
     apiUrlInput.value = "";
     settingsStore.setApiBaseUrl("");
-    ElMessage.success("已重置为默认API地址");
+
+    // 🔧 重置 API 健康检查状态（关键修复）
+    // 清除之前的失败记录，允许使用默认地址重新连接
+    resetAPIHealthStatus();
+
+    // ElMessage.success({
+    //     message: "已重置为默认API地址并立即生效",
+    //     duration: 2000
+    // });
 };
+
+// 测试 API 连接（可选）
+// const testApiConnection = async (url: string) => {
+//     try {
+//         // 简单的连接测试，不显示错误提示
+//         const response = await fetch(`${url}/health`, {
+//             method: 'GET',
+//             signal: AbortSignal.timeout(3000)
+//         });
+
+//         if (response.ok) {
+//             ElMessage.success({
+//                 message: "API 连接测试成功",
+//                 duration: 1500
+//             });
+//         }
+//     } catch (error) {
+//         // 静默失败，不影响用户体验
+//         console.warn("API 连接测试失败:", error);
+//     }
+// };
 </script>
 
 <style scoped lang="scss">
