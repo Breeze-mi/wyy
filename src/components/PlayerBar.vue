@@ -781,6 +781,17 @@ const handleEnded = () => {
         return;
     }
 
+    // 如果播放列表只有一首歌，直接重新播放（无论什么模式）
+    if (playerStore.playlist.length === 1) {
+        if (audioRef.value) {
+            audioRef.value.currentTime = 0;
+            audioRef.value.play().catch(err => {
+                console.error("重新播放失败:", err);
+            });
+        }
+        return;
+    }
+
     // 单曲循环模式：重新播放当前歌曲
     if (playerStore.playMode === PlayMode.LOOP) {
         if (audioRef.value) {
@@ -834,6 +845,11 @@ const toggleMute = () => {
 
 // 处理播放/暂停按钮点击
 const handleTogglePlay = () => {
+    // 检查播放列表是否为空
+    if (playerStore.playlist.length === 0 || !playerStore.currentSong) {
+        ElMessage.warning("播放列表为空，请先添加歌曲");
+        return;
+    }
     userAction.value = true;
     playerStore.togglePlay();
 };
