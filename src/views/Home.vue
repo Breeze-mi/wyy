@@ -40,7 +40,7 @@
                             <div class="col-album">专辑名</div>
                             <div class="col-actions">操作</div>
                         </div>
-                        <div class="table-body" ref="tableBodyRef">
+                        <div class="table-body" ref="tableBodyRef" :class="{ 'shift-selecting': isShiftPressed }">
                             <div v-for="(song, index) in searchStore.searchResults" :key="song.id" class="table-row"
                                 @click="handleSongClick(song, index, $event)" @dblclick="handlePlaySong(song)"
                                 @contextmenu.prevent="handleContextMenu($event, song)" :class="{
@@ -366,9 +366,24 @@ const showPlaylistSubmenu = ref(false);
 const selectedSongs = ref<Set<string>>(new Set());
 const lastSelectedIndex = ref<number | null>(null);
 
+// Shift 键状态
+const isShiftPressed = ref(false);
+
 // 显示右键菜单
 const handleContextMenu = (event: MouseEvent, song: Song) => {
     event.preventDefault();
+
+    // 检查是否有选中的文字
+    const selection = window.getSelection();
+    const selectedText = selection?.toString().trim();
+
+    // 如果有选中的文字，静默复制到剪贴板
+    if (selectedText) {
+        navigator.clipboard.writeText(selectedText).catch(() => {
+            // 静默失败，不显示任何提示
+        });
+        return;
+    }
 
     // 如果右键点击的歌曲不在选中列表中，清空选中状态
     if (!selectedSongs.value.has(song.id)) {
@@ -395,13 +410,30 @@ const handleClickOutside = () => {
     }
 };
 
+// 监听 Shift 键状态
+const handleKeyDown = (event: KeyboardEvent) => {
+    if (event.key === 'Shift') {
+        isShiftPressed.value = true;
+    }
+};
+
+const handleKeyUp = (event: KeyboardEvent) => {
+    if (event.key === 'Shift') {
+        isShiftPressed.value = false;
+    }
+};
+
 onMounted(() => {
     themeStore.initTheme();
     document.addEventListener("click", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("keyup", handleKeyUp);
 });
 
 onUnmounted(() => {
     document.removeEventListener("click", handleClickOutside);
+    document.removeEventListener("keydown", handleKeyDown);
+    document.removeEventListener("keyup", handleKeyUp);
 });
 
 // 监听搜索结果变化，滚动到顶部
@@ -534,6 +566,13 @@ watch(() => searchStore.searchResults, () => {
                     overflow-y: auto;
                     overflow-x: hidden;
 
+                    /* 当按住 Shift 键时禁止文字选择 */
+                    &.shift-selecting {
+                        .table-row {
+                            user-select: none;
+                        }
+                    }
+
                     .table-row {
                         display: flex;
                         align-items: center;
@@ -541,8 +580,8 @@ watch(() => searchStore.searchResults, () => {
                         cursor: pointer;
                         transition: all 0.2s;
                         border-bottom: 1px solid #f7f7f7;
-                        user-select: none;
-                        /* 禁止文字选择 */
+                        user-select: text;
+                        /* 允许文字选择 */
                         min-width: 0;
 
                         &:hover {
