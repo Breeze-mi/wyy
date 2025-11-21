@@ -46,7 +46,8 @@
                         'is-playing': index === playerStore.currentIndex,
                         'is-dragging': draggedIndex === index,
                         'drag-over': dragOverIndex === index,
-                        'is-selected': selectedIndices.has(index)
+                        'is-selected': selectedIndices.has(index),
+                        'is-focused': focusedIndex === index && !selectedIndices.has(index)
                     }" draggable="true" @dragstart="handleDragStart(index, $event)" @dragend="handleDragEnd"
                         @dragover.prevent="handleDragOver(index, $event)" @dragleave="handleDragLeave"
                         @drop.prevent="handleDrop(index, $event)" @dblclick="handlePlaySong(index)"
@@ -88,6 +89,7 @@ const dragOverIndex = ref<number | null>(null);
 // 多选相关状态
 const selectedIndices = ref<Set<number>>(new Set());
 const lastSelectedIndex = ref<number | null>(null);
+const focusedIndex = ref<number | null>(null); // 临时聚焦的索引
 
 // 点击遮罩层关闭
 const handleClickOutside = () => {
@@ -112,9 +114,10 @@ const handleGlobalClick = (event: MouseEvent) => {
 // 监听播放列表显示状态，关闭时清空选中
 watch(() => playerStore.showPlaylist, (newVal) => {
     if (!newVal) {
-        // 播放列表关闭时，清空选中状态
+        // 播放列表关闭时，清空选中状态和聚焦状态
         selectedIndices.value.clear();
         lastSelectedIndex.value = null;
+        focusedIndex.value = null;
     }
 });
 
@@ -131,9 +134,11 @@ onUnmounted(() => {
 
 // 处理歌曲点击（支持多选）
 const handleSongClick = (index: number, event: MouseEvent) => {
-    // Ctrl/Cmd + 点击：多选/取消选择
+    // Ctrl/Cmd + 点击：真正选中/取消选择
     if (event.ctrlKey || event.metaKey) {
         event.preventDefault();
+        // 清除聚焦状态
+        focusedIndex.value = null;
         if (selectedIndices.value.has(index)) {
             selectedIndices.value.delete(index);
             if (selectedIndices.value.size === 0) {
@@ -147,42 +152,47 @@ const handleSongClick = (index: number, event: MouseEvent) => {
     // Shift + 点击：范围选择
     else if (event.shiftKey) {
         event.preventDefault();
-        // 如果没有上次选中的索引，从当前位置开始
-        if (lastSelectedIndex.value === null) {
-            selectedIndices.value.clear();
-            selectedIndices.value.add(index);
-            lastSelectedIndex.value = index;
-        } else {
-            // 范围选择
-            const start = Math.min(lastSelectedIndex.value, index);
-            const end = Math.max(lastSelectedIndex.value, index);
-            selectedIndices.value.clear();
-            for (let i = start; i <= end; i++) {
-                selectedIndices.value.add(i);
-            }
-        }
-    }
-    // 普通点击：单选或清空
-    else {
-        // 如果点击的是已选中的歌曲，保持选中状态
-        if (selectedIndices.value.has(index) && selectedIndices.value.size === 1) {
-            // 不做任何操作，保持选中
-            return;
-        }
-        // 否则清空其他选中，只选中当前歌曲
+        // 确定范围选择的起点：优先使用 focusedIndex，其次使用 lastSelectedIndex
+        const startIndex = focusedIndex.value !== null ? focusedIndex.value :
+                          (lastSelectedIndex.value !== null ? lastSelectedIndex.value : index);
+
+        // 清除聚焦状态
+        focusedIndex.value = null;
+
+        // 范围选择
+        const start = Math.min(startIndex, index);
+        const end = Math.max(startIndex, index);
         selectedIndices.value.clear();
-        selectedIndices.value.add(index);
+        for (let i = start; i <= end; i++) {
+            selectedIndices.value.add(i);
+        }
+        // 保持起点作为 lastSelectedIndex，以便后续的 Shift 选择
+        lastSelectedIndex.value = startIndex;
+    }
+    // 普通点击：临时聚焦（不是真正选中）
+    else {
+        // 清空真正的选中状态
+        selectedIndices.value.clear();
+        // 设置临时聚焦，并记录为起点用于 Shift 选择
+        focusedIndex.value = index;
+        // 同时记录 lastSelectedIndex，这样 Shift 选择时会以这个为起点
         lastSelectedIndex.value = index;
     }
 };
 
 const handlePlaySong = (index: number) => {
-    playerStore.currentIndex = index;
-    playerStore.isPlaying = true;
-    ElMessage.success(`开始播放：${playerStore.playlist[index].name}`);
-    // 清空选中状态
+    // 使用 playerStore 的 switchToIndex 方法切换歌曲
+    if (index >= 0 && index < playerStore.playlist.length) {
+        const song = playerStore.playlist[index];
+        playerStore.currentIndex = index;
+        playerStore.currentSong = song; // 手动设置 currentSong
+        playerStore.isPlaying = true;
+        ElMessage.success(`开始播放：${song.name}`);
+    }
+    // 清空选中状态和聚焦状态
     selectedIndices.value.clear();
     lastSelectedIndex.value = null;
+    focusedIndex.value = null;
 };
 
 const handleRemove = (index: number) => {
@@ -195,9 +205,10 @@ const handleRemove = (index: number) => {
     }).then(() => {
         playerStore.removeFromPlaylist(index);
         ElMessage.success(`已从播放列表移除：${songName}`);
-        // 清空选中状态
+        // 清空选中状态和聚焦状态
         selectedIndices.value.clear();
         lastSelectedIndex.value = null;
+        focusedIndex.value = null;
     }).catch(() => {
         // 用户取消删除
     });
@@ -224,6 +235,7 @@ const handleRemoveSelected = () => {
         ElMessage.success(`已删除 ${count} 首歌曲`);
         selectedIndices.value.clear();
         lastSelectedIndex.value = null;
+        focusedIndex.value = null;
     }).catch(() => {
         // 用户取消
     });
@@ -233,12 +245,14 @@ const handleRemoveSelected = () => {
 const handleCancelSelect = () => {
     selectedIndices.value.clear();
     lastSelectedIndex.value = null;
+    focusedIndex.value = null;
 };
 
 // 关闭播放列表（清空选中状态）
 const handleClosePlaylist = () => {
     selectedIndices.value.clear();
     lastSelectedIndex.value = null;
+    focusedIndex.value = null;
     playerStore.togglePlaylist();
 };
 
@@ -256,6 +270,7 @@ const handleClearAll = () => {
         playerStore.clearPlaylist();
         selectedIndices.value.clear();
         lastSelectedIndex.value = null;
+        focusedIndex.value = null;
         ElMessage.success("播放列表已清空");
     }).catch(() => {
         // 用户取消
@@ -609,24 +624,44 @@ const handleDrop = (targetIndex: number, event: DragEvent) => {
             }
 
             &.is-playing {
-                background: var(--el-color-primary-light-9);
+                background: var(--song-playing-bg);
+                border-left: 3px solid var(--el-color-primary);
+                padding-left: 11px;
 
                 .song-name {
-                    color: var(--el-color-primary);
+                    color: var(--song-playing-text);
                 }
 
                 .playing-icon {
-                    color: var(--el-color-primary);
+                    color: var(--song-playing-text);
                 }
             }
 
             &.is-selected {
-                background: var(--el-color-primary-light-8) !important;
+                background: var(--song-selected-bg) !important;
                 border-left: 3px solid var(--el-color-primary);
                 padding-left: 11px;
 
                 .song-name {
                     font-weight: 500;
+                    color: var(--song-selected-text);
+                }
+
+                .song-artist {
+                    color: var(--el-text-color-secondary);
+                }
+            }
+
+            &.is-focused {
+                background: var(--song-playing-bg);
+                // 没有左边的红色竖线，只是临时高亮
+
+                .song-name {
+                    color: var(--el-text-color-primary);
+                }
+
+                .song-artist {
+                    color: var(--el-text-color-secondary);
                 }
             }
 

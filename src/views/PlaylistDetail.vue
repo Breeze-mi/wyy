@@ -42,7 +42,7 @@
                     <div class="col-album">专辑名</div>
                     <div class="col-actions">操作</div>
                 </div>
-                <div class="table-body">
+                <div class="table-body" :class="{ 'shift-selecting': isShiftPressed }">
                     <div v-for="(song, index) in songs" :key="song.id" class="table-row" :class="[
                         playerStore.currentSong?.id === song.id ? 'is-playing' : '',
                         selectedSongs.has(song.id) ? 'is-selected' : '',
@@ -479,6 +479,9 @@ const showPlaylistSubmenu = ref(false);
 const selectedSongs = ref<Set<string>>(new Set());
 const lastSelectedIndex = ref<number | null>(null);
 
+// Shift 键状态（用于控制文字选择）
+const isShiftPressed = ref(false);
+
 // 拖拽状态
 const draggedIndex = ref<number | null>(null);
 const dragOverIndex = ref<number | null>(null);
@@ -626,6 +629,19 @@ const handleDrop = (targetIndex: number, _event: DragEvent) => {
     ElMessage.success("已调整歌曲顺序");
 };
 
+// 监听 Shift 键状态
+const handleKeyDown = (event: KeyboardEvent) => {
+    if (event.key === 'Shift') {
+        isShiftPressed.value = true;
+    }
+};
+
+const handleKeyUp = (event: KeyboardEvent) => {
+    if (event.key === 'Shift') {
+        isShiftPressed.value = false;
+    }
+};
+
 onMounted(() => {
     // 检查歌单是否存在
     if (!isBuiltinPlaylist.value) {
@@ -636,10 +652,14 @@ onMounted(() => {
         }
     }
     document.addEventListener("click", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("keyup", handleKeyUp);
 });
 
 onUnmounted(() => {
     document.removeEventListener("click", handleClickOutside);
+    document.removeEventListener("keydown", handleKeyDown);
+    document.removeEventListener("keyup", handleKeyUp);
 });
 </script>
 
@@ -655,6 +675,7 @@ onUnmounted(() => {
         align-items: center;
         gap: 16px;
         padding: 20px 24px;
+        height: 79px;
         background: var(--el-bg-color);
         border-bottom: 1px solid var(--el-border-color);
         flex-shrink: 0;
@@ -668,6 +689,13 @@ onUnmounted(() => {
 
         .spacer {
             flex: 1;
+        }
+
+        // 统一设置和主题切换按钮大小
+        :deep(.el-button.is-circle) {
+            width: 40px;
+            height: 40px;
+            font-size: 22px;
         }
 
         .selected-count {
@@ -696,7 +724,7 @@ onUnmounted(() => {
                 align-items: center;
                 padding: 12px 16px;
                 background: var(--el-fill-color-light);
-                font-size: 13px;
+                font-size: var(--custom-font-size-md);
                 font-weight: 600;
                 color: var(--el-text-color-secondary);
                 border-radius: 4px;
@@ -714,23 +742,31 @@ onUnmounted(() => {
                 }
 
                 .col-artist {
-                    width: 180px;
+                    width: 300px;
                     flex-shrink: 0;
                 }
 
                 .col-album {
-                    width: 200px;
+                    width: 260px;
                     flex-shrink: 0;
                 }
 
                 .col-actions {
-                    width: 140px;
+                    width: 190px;
                     flex-shrink: 0;
                     text-align: center;
                 }
             }
 
             .table-body {
+
+                /* 当按住 Shift 键时禁止文字选择 */
+                &.shift-selecting {
+                    .table-row {
+                        user-select: none;
+                    }
+                }
+
                 .table-row {
                     display: flex;
                     align-items: center;
@@ -738,8 +774,8 @@ onUnmounted(() => {
                     cursor: pointer;
                     transition: all 0.2s;
                     border-radius: 4px;
-                    user-select: none;
-                    /* 禁止文字选择 */
+                    user-select: text;
+                    /* 允许文字选择 */
                     position: relative;
 
                     &:hover {
@@ -774,6 +810,8 @@ onUnmounted(() => {
 
                     &.is-playing {
                         background: var(--song-playing-bg);
+                        border-left: 3px solid var(--el-color-primary);
+                        padding-left: 13px;
 
                         .col-name .song-name {
                             color: var(--song-playing-text);
@@ -793,8 +831,6 @@ onUnmounted(() => {
 
                     &.is-selected {
                         background: var(--song-selected-bg) !important;
-                        border-left: 3px solid var(--song-selected-border);
-                        padding-left: 13px;
 
                         .col-name .song-name {
                             font-weight: 500;
@@ -826,12 +862,12 @@ onUnmounted(() => {
                         width: 50px;
                         flex-shrink: 0;
                         text-align: center;
-                        font-size: 14px;
+                        font-size: var(--custom-font-size-base);
                         color: var(--el-text-color-secondary);
 
                         .playing-icon {
                             color: var(--el-color-primary);
-                            font-size: 16px;
+                            font-size: var(--custom-font-size-lg);
                         }
                     }
 
@@ -840,7 +876,7 @@ onUnmounted(() => {
                         min-width: 200px;
 
                         .song-name {
-                            font-size: 14px;
+                            font-size: var(--custom-font-size-base);
                             font-weight: 500;
                             color: var(--el-text-color-primary);
                             overflow: hidden;
@@ -850,9 +886,9 @@ onUnmounted(() => {
                     }
 
                     .col-artist {
-                        width: 180px;
+                        width: 305px;
                         flex-shrink: 0;
-                        font-size: 13px;
+                        font-size: var(--custom-font-size-md);
                         color: var(--el-text-color-secondary);
                         overflow: hidden;
                         text-overflow: ellipsis;
@@ -860,9 +896,9 @@ onUnmounted(() => {
                     }
 
                     .col-album {
-                        width: 200px;
+                        width: 260px;
                         flex-shrink: 0;
-                        font-size: 13px;
+                        font-size: var(--custom-font-size-md);
                         color: var(--el-text-color-secondary);
                         overflow: hidden;
                         text-overflow: ellipsis;
@@ -870,7 +906,7 @@ onUnmounted(() => {
                     }
 
                     .col-actions {
-                        width: 140px;
+                        width: 190px;
                         flex-shrink: 0;
                         display: flex;
                         justify-content: center;
@@ -908,19 +944,19 @@ onUnmounted(() => {
         padding: 10px 16px;
         cursor: pointer;
         transition: background 0.2s, color 0.2s;
-        font-size: 13px;
+        font-size: var(--custom-font-size-md);
         color: var(--el-text-color-primary);
         position: relative;
 
         .el-icon {
-            font-size: 16px;
+            font-size: var(--custom-font-size-lg);
             color: var(--el-text-color-regular);
             transition: color 0.2s;
         }
 
         .arrow-icon {
             margin-left: auto;
-            font-size: 14px;
+            font-size: var(--custom-font-size-base);
         }
 
         &:hover {
@@ -959,7 +995,7 @@ onUnmounted(() => {
 
                 .submenu-item {
                     padding: 10px 16px;
-                    font-size: 13px;
+                    font-size: var(--custom-font-size-md);
                     color: var(--el-text-color-primary);
                     cursor: pointer;
                     transition: background 0.2s;

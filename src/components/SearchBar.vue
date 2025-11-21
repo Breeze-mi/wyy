@@ -1,14 +1,14 @@
 <template>
     <div class="search-bar">
-        <el-select v-model="settingsStore.searchType" placeholder="选择类型" style="width: 120px">
+        <el-select v-model="settingsStore.searchType" placeholder="选择类型" size="large" style="width: 140px">
             <el-option label="搜索音乐" value="music" />
             <el-option label="单曲解析" value="song" />
             <el-option label="歌单解析" value="playlist" />
             <el-option label="专辑解析" value="album" />
         </el-select>
         <el-input v-model="searchStore.keyword" :placeholder="placeholderText" :prefix-icon="Search" clearable
-            @keyup.enter="handleSearch" @input="handleInput" />
-        <el-button type="primary" :icon="Search" @click="handleSearch" :loading="searchStore.searching">
+            size="large" @keyup.enter="handleSearch" @input="handleInput" />
+        <el-button type="primary" :icon="Search" size="large" @click="handleSearch" :loading="searchStore.searching">
             {{ buttonText }}
         </el-button>
     </div>

@@ -258,12 +258,12 @@ onUnmounted(() => {
     transition: background 0.3s, border-color 0.3s;
 
     .sidebar-logo {
-        padding: 20px 16px;
+        padding: 25px 15px;
         border-bottom: 1px solid var(--sidebar-border);
 
         h1 {
             margin: 0;
-            font-size: 18px;
+            font-size: 24px;
             font-weight: 600;
             color: var(--el-text-color-primary);
             transition: color 0.3s;
@@ -284,7 +284,7 @@ onUnmounted(() => {
             align-items: center;
             justify-content: space-between;
             padding: 8px 12px;
-            font-size: 12px;
+            font-size: var(--custom-font-size-sm);
             color: var(--el-text-color-secondary);
             font-weight: 500;
 
@@ -301,7 +301,7 @@ onUnmounted(() => {
 
         .empty-tip {
             padding: 8px 12px;
-            font-size: 12px;
+            font-size: var(--custom-font-size-sm);
             color: var(--el-text-color-secondary);
             text-align: center;
         }
@@ -330,12 +330,12 @@ onUnmounted(() => {
         border-radius: 6px;
         cursor: pointer;
         transition: all 0.2s;
-        font-size: 14px;
+        font-size: var(--custom-font-size-base);
         color: var(--el-text-color-primary);
         position: relative;
 
         .el-icon {
-            font-size: 18px;
+            font-size: var(--custom-font-size-lg);
             color: var(--el-text-color-regular);
             transition: color 0.2s;
         }
@@ -365,7 +365,7 @@ onUnmounted(() => {
 
     .playlist-item {
         .playlist-name {
-            font-size: 13px;
+            font-size: var(--custom-font-size-md);
         }
     }
 }
@@ -388,11 +388,11 @@ onUnmounted(() => {
         padding: 10px 16px;
         cursor: pointer;
         transition: background 0.2s, color 0.2s;
-        font-size: 13px;
+        font-size: var(--custom-font-size-md);
         color: var(--el-text-color-primary);
 
         .el-icon {
-            font-size: 16px;
+            font-size: var(--custom-font-size-lg);
             color: var(--el-text-color-regular);
             transition: color 0.2s;
         }

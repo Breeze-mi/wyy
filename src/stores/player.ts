@@ -146,6 +146,10 @@ export const usePlayerStore = defineStore("player", () => {
       currentIndex.value = newIndex;
       // ✅ 直接设置 currentSong，避免 computed 的多次触发
       currentSong.value = song;
+      // ✅ 如果是添加到空列表，强制重新加载（解决清空后再播放同一首歌的问题）
+      if (newIndex === 0) {
+        reloadTimestamp.value = Date.now();
+      }
       console.log(
         `添加歌曲到播放列表: ${song.name}, 当前列表长度: ${playlist.value.length}, 索引: ${newIndex}`
       );
@@ -268,6 +272,8 @@ export const usePlayerStore = defineStore("player", () => {
         currentSong.value = null;
         isPlaying.value = false;
         currentSongDetail.value = null;
+        currentTime.value = 0;
+        duration.value = 0;
         return;
       }
 
@@ -298,6 +304,9 @@ export const usePlayerStore = defineStore("player", () => {
     currentSong.value = null;
     isPlaying.value = false;
     currentSongDetail.value = null;
+    savedProgress.value = {};
+    currentTime.value = 0;
+    duration.value = 0;
   };
 
   // 设置当前歌曲详情

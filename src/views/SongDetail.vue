@@ -250,6 +250,13 @@ onMounted(() => {
         .spacer {
             flex: 1;
         }
+
+        // 统一设置和主题切换按钮大小
+        :deep(.el-button.is-circle) {
+            width: 40px;
+            height: 40px;
+            font-size: 22px;
+        }
     }
 
     .detail-content {
@@ -364,29 +371,21 @@ onMounted(() => {
 
                     .lyric-line {
                         text-align: center;
-                        font-size: 18px; //普通歌词
+                        font-size: var(--lyric-inactive-font-size, 18px);
                         line-height: 2.8;
                         color: var(--lyric-inactive-text);
                         transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
                         padding: 8px 0;
                         cursor: default;
-                        opacity: var(--lyric-inactive-opacity);
+                        opacity: 0.75; // 统一未播放歌词的亮度
 
                         &.active {
-                            font-size: 31px; //当前播放歌词
-                            font-weight: 600;
-                            color: var(--el-color-primary);
-                            opacity: 1;
+                            font-size: var(--lyric-active-font-size, 32px);
+                            font-weight: 700;
+                            color: var(--lyric-active-text, var(--el-color-primary));
+                            opacity: 1; //最大
                             transform: scale(1.05);
                             text-shadow: 0 2px 8px var(--lyric-active-shadow);
-                        }
-
-                        // 当前歌词的前一句和后一句稍微突出一些
-                        &.active+.lyric-line,
-                        &:has(+ .active) {
-                            opacity: 0.7;
-                            color: var(--lyric-inactive-text);
-                            font-size: 20px;
                         }
                     }
                 }

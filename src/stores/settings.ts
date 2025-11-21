@@ -40,6 +40,8 @@ export const useSettingsStore = defineStore("settings", () => {
       fontSize: "medium",
       fontFamily: "Microsoft YaHei",
       apiBaseUrl: "",
+      lyricActiveFontSize: 32,
+      lyricInactiveFontSize: 18,
     };
   };
 
@@ -62,6 +64,10 @@ export const useSettingsStore = defineStore("settings", () => {
   // API服务器地址（空字符串表示使用默认地址）
   const apiBaseUrl = ref<string>(savedSettings.apiBaseUrl || "");
 
+  // 歌词字体大小（像素值）
+  const lyricActiveFontSize = ref<number>(savedSettings.lyricActiveFontSize || 32);
+  const lyricInactiveFontSize = ref<number>(savedSettings.lyricInactiveFontSize || 18);
+
   // 标志：是否正在从其他标签页同步数据（避免循环广播）
   let isSyncing = false;
 
@@ -77,6 +83,8 @@ export const useSettingsStore = defineStore("settings", () => {
         fontSize: fontSize.value,
         fontFamily: fontFamily.value,
         apiBaseUrl: apiBaseUrl.value,
+        lyricActiveFontSize: lyricActiveFontSize.value,
+        lyricInactiveFontSize: lyricInactiveFontSize.value,
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 
@@ -88,7 +96,7 @@ export const useSettingsStore = defineStore("settings", () => {
   };
 
   // 监听变化并自动保存
-  watch([quality, searchType, fontSize, fontFamily, apiBaseUrl], saveSettings);
+  watch([quality, searchType, fontSize, fontFamily, apiBaseUrl, lyricActiveFontSize, lyricInactiveFontSize], saveSettings);
 
   // 订阅其他标签页的更新
   tabSync.subscribe("settings", (data) => {
@@ -101,6 +109,8 @@ export const useSettingsStore = defineStore("settings", () => {
     fontSize.value = data.fontSize || "medium";
     fontFamily.value = data.fontFamily || "Microsoft YaHei";
     apiBaseUrl.value = data.apiBaseUrl || "";
+    lyricActiveFontSize.value = data.lyricActiveFontSize || 32;
+    lyricInactiveFontSize.value = data.lyricInactiveFontSize || 18;
 
     // 使用 nextTick 确保在下一个 tick 重置同步标志
     nextTick(() => {
@@ -136,14 +146,27 @@ export const useSettingsStore = defineStore("settings", () => {
   const applyFontSize = (size: FontSize) => {
     const root = document.documentElement;
     switch (size) {
+      //程序整体字体
       case "small":
-        root.style.fontSize = "14px";
+        // 小
+        root.style.setProperty("--custom-font-size-base", "14px");
+        root.style.setProperty("--custom-font-size-sm", "12px");
+        root.style.setProperty("--custom-font-size-md", "14px");
+        root.style.setProperty("--custom-font-size-lg", "16px");
         break;
       case "medium":
-        root.style.fontSize = "16px";
+        // 中
+        root.style.setProperty("--custom-font-size-base", "17px");
+        root.style.setProperty("--custom-font-size-sm", "15px");
+        root.style.setProperty("--custom-font-size-md", "17px");
+        root.style.setProperty("--custom-font-size-lg", "19px");
         break;
       case "large":
-        root.style.fontSize = "18px";
+        // 大
+        root.style.setProperty("--custom-font-size-base", "20px");
+        root.style.setProperty("--custom-font-size-sm", "18px");
+        root.style.setProperty("--custom-font-size-md", "20px");
+        root.style.setProperty("--custom-font-size-lg", "22px");
         break;
     }
   };
@@ -183,17 +206,37 @@ export const useSettingsStore = defineStore("settings", () => {
     return isElectron() && isProduction();
   };
 
+  // 设置歌词字体大小
+  const setLyricFontSizes = (activeSize: number, inactiveSize: number) => {
+    lyricActiveFontSize.value = activeSize;
+    lyricInactiveFontSize.value = inactiveSize;
+    applyLyricFontSizes();
+  };
+
+  // 应用歌词字体大小到 CSS 变量
+  const applyLyricFontSizes = () => {
+    const root = document.documentElement;
+    root.style.setProperty("--lyric-active-font-size", `${lyricActiveFontSize.value}px`);
+    root.style.setProperty("--lyric-inactive-font-size", `${lyricInactiveFontSize.value}px`);
+  };
+
+  // 初始化时应用歌词字体大小
+  applyLyricFontSizes();
+
   return {
     quality,
     searchType,
     fontSize,
     fontFamily,
     apiBaseUrl,
+    lyricActiveFontSize,
+    lyricInactiveFontSize,
     setQuality,
     setSearchType,
     setFontSize,
     setFontFamily,
     setApiBaseUrl,
+    setLyricFontSizes,
     isElectron,
     isProduction,
     isDevelopment,
