@@ -450,17 +450,19 @@ watch(() => searchStore.searchResults, () => {
     height: 100vh;
     display: flex;
     flex-direction: column;
-    background: white;
+    background: var(--el-bg-color);
+    transition: background 0.3s;
 
     .top-bar {
         display: flex;
         align-items: center;
         justify-content: space-between;
         padding: 16px 24px;
-        background: white;
-        border-bottom: 1px solid #f0f0f0;
+        background: var(--el-bg-color);
+        border-bottom: 1px solid var(--el-border-color-light);
         flex-shrink: 0;
         gap: 20px;
+        transition: background 0.3s, border-color 0.3s;
 
         .top-actions {
             display: flex;
@@ -474,14 +476,15 @@ watch(() => searchStore.searchResults, () => {
         flex: 1;
         overflow-y: auto;
         padding: 0 0 70px 0;
-        background: white;
+        background: var(--el-bg-color);
+        transition: background 0.3s;
 
         .search-results-container {
             padding: 24px;
             height: 100%;
             display: flex;
             flex-direction: column;
-            background: white;
+            background: var(--el-bg-color);
 
             .results-header {
                 display: flex;
@@ -494,12 +497,12 @@ watch(() => searchStore.searchResults, () => {
                     margin: 0;
                     font-size: 18px;
                     font-weight: 600;
-                    color: #333;
+                    color: var(--el-text-color-primary);
                 }
 
                 .results-count {
                     font-size: 13px;
-                    color: #999;
+                    color: var(--el-text-color-secondary);
                 }
 
 
@@ -523,15 +526,16 @@ watch(() => searchStore.searchResults, () => {
                     display: flex;
                     align-items: center;
                     padding: 10px 0;
-                    background: white;
+                    background: var(--el-bg-color);
                     font-size: 12px;
                     font-weight: 500;
-                    color: #999;
+                    color: var(--el-text-color-secondary);
                     position: sticky;
                     top: 0;
                     z-index: 10;
-                    border-bottom: 1px solid #f0f0f0;
+                    border-bottom: 1px solid var(--el-border-color-light);
                     min-width: 0;
+                    transition: background 0.3s, border-color 0.3s;
 
                     .col-index {
                         width: 50px;
@@ -579,13 +583,13 @@ watch(() => searchStore.searchResults, () => {
                         padding: 12px 0;
                         cursor: pointer;
                         transition: all 0.2s;
-                        border-bottom: 1px solid #f7f7f7;
+                        border-bottom: 1px solid var(--el-border-color-lighter);
                         user-select: text;
                         /* 允许文字选择 */
                         min-width: 0;
 
                         &:hover {
-                            background: #f7f7f7;
+                            background: var(--el-fill-color-light);
 
                             .col-actions {
                                 opacity: 1;
@@ -597,29 +601,52 @@ watch(() => searchStore.searchResults, () => {
                             flex-shrink: 0;
                             text-align: center;
                             font-size: 14px;
-                            color: #999;
+                            color: var(--el-text-color-secondary);
 
                             .playing-icon {
-                                color: #2878ff;
+                                color: var(--el-color-primary);
                                 font-size: 16px;
                             }
                         }
 
                         &.is-playing {
-                            background: #f0f5ff;
+                            background: var(--song-playing-bg);
 
                             .col-name .song-name {
-                                color: #2878ff;
+                                color: var(--song-playing-text);
+                            }
+
+                            .col-artist,
+                            .col-album {
+                                color: var(--song-playing-text-secondary);
+                            }
+
+                            .col-index {
+                                .playing-icon {
+                                    color: var(--song-playing-text);
+                                }
                             }
                         }
 
                         &.is-selected {
-                            background: #e6f7ff !important;
-                            border-left: 3px solid #2878ff;
+                            background: var(--song-selected-bg) !important;
+                            border-left: 3px solid var(--song-selected-border);
                             padding-left: 13px;
 
                             .col-name .song-name {
                                 font-weight: 500;
+                                color: var(--song-selected-text);
+                            }
+
+                            .col-artist,
+                            .col-album {
+                                color: var(--song-selected-text);
+                                opacity: 0.85;
+                            }
+
+                            .col-index {
+                                color: var(--song-selected-text);
+                                opacity: 0.7;
                             }
                         }
 
@@ -632,7 +659,7 @@ watch(() => searchStore.searchResults, () => {
                             .song-name {
                                 font-size: 14px;
                                 font-weight: 400;
-                                color: #333;
+                                color: var(--el-text-color-primary);
                                 overflow: hidden;
                                 text-overflow: ellipsis;
                                 white-space: nowrap;
@@ -643,7 +670,7 @@ watch(() => searchStore.searchResults, () => {
                             width: 180px;
                             flex-shrink: 0;
                             font-size: 13px;
-                            color: #666;
+                            color: var(--el-text-color-regular);
                             overflow: hidden;
                             text-overflow: ellipsis;
                             white-space: nowrap;
@@ -653,7 +680,7 @@ watch(() => searchStore.searchResults, () => {
                             width: 200px;
                             flex-shrink: 0;
                             font-size: 13px;
-                            color: #666;
+                            color: var(--el-text-color-regular);
                             overflow: hidden;
                             text-overflow: ellipsis;
                             white-space: nowrap;
@@ -678,7 +705,7 @@ watch(() => searchStore.searchResults, () => {
             display: flex;
             justify-content: center;
             align-items: center;
-            background: white;
+            background: var(--el-bg-color);
 
             :deep(.el-pagination) {
 
@@ -731,7 +758,7 @@ watch(() => searchStore.searchResults, () => {
             align-items: center;
             justify-content: center;
             padding: 40px 24px 90px;
-            background: white;
+            background: var(--el-bg-color);
 
             .empty-icon {
                 font-size: 120px;
@@ -744,7 +771,7 @@ watch(() => searchStore.searchResults, () => {
             align-items: center;
             justify-content: center;
             padding: 40px 24px 90px;
-            background: white;
+            background: var(--el-bg-color);
 
             .current-playing {
                 text-align: center;
@@ -754,7 +781,7 @@ watch(() => searchStore.searchResults, () => {
                     height: 280px;
                     border-radius: 8px;
                     object-fit: cover;
-                    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+                    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
                     margin-bottom: 24px;
 
                     &.rotating {
@@ -765,13 +792,13 @@ watch(() => searchStore.searchResults, () => {
                 h2 {
                     font-size: 24px;
                     font-weight: 600;
-                    color: #333;
+                    color: var(--el-text-color-primary);
                     margin: 0 0 12px 0;
                 }
 
                 p {
                     font-size: 16px;
-                    color: #666;
+                    color: var(--el-text-color-regular);
                     margin: 0;
                 }
             }
@@ -792,17 +819,17 @@ watch(() => searchStore.searchResults, () => {
 /* 右键菜单样式 */
 .context-menu {
     position: fixed;
-    background: white;
-    border: 1px solid #e5e5e7;
+    background: var(--el-bg-color-overlay);
+    border: 1px solid var(--el-border-color);
     border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     padding: 4px 0;
     min-width: 160px;
     z-index: 9999;
 
     .menu-divider {
         height: 1px;
-        background: #f0f0f0;
+        background: var(--el-border-color-light);
         margin: 4px 0;
     }
 
@@ -812,14 +839,15 @@ watch(() => searchStore.searchResults, () => {
         gap: 10px;
         padding: 10px 16px;
         cursor: pointer;
-        transition: background 0.2s;
+        transition: background 0.2s, color 0.2s;
         font-size: 13px;
-        color: #333;
+        color: var(--el-text-color-primary);
         position: relative;
 
         .el-icon {
             font-size: 16px;
-            color: #666;
+            color: var(--el-text-color-regular);
+            transition: color 0.2s;
         }
 
         .arrow-icon {
@@ -828,10 +856,10 @@ watch(() => searchStore.searchResults, () => {
         }
 
         &:hover {
-            background: #f7f7f7;
+            background: var(--el-fill-color-light);
 
             .el-icon {
-                color: #2878ff;
+                color: var(--el-color-primary);
             }
         }
 
@@ -842,10 +870,10 @@ watch(() => searchStore.searchResults, () => {
                 position: absolute;
                 left: 100%;
                 top: 0;
-                background: white;
-                border: 1px solid #e5e5e7;
+                background: var(--el-bg-color-overlay);
+                border: 1px solid var(--el-border-color);
                 border-radius: 6px;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
                 padding: 4px 0;
                 min-width: 140px;
                 max-height: 300px;
@@ -855,16 +883,16 @@ watch(() => searchStore.searchResults, () => {
                 .submenu-item {
                     padding: 10px 16px;
                     font-size: 13px;
-                    color: #333;
+                    color: var(--el-text-color-primary);
                     cursor: pointer;
                     transition: background 0.2s;
 
                     &:hover {
-                        background: #f7f7f7;
+                        background: var(--el-fill-color-light);
                     }
 
                     &.disabled {
-                        color: #999;
+                        color: var(--el-text-color-secondary);
                         cursor: not-allowed;
                     }
                 }

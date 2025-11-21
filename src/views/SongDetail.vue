@@ -336,9 +336,10 @@ onMounted(() => {
                 flex: 1;
                 overflow-y: auto;
                 padding: 20px;
-                background: var(--el-fill-color-lighter);
+                background: var(--lyric-bg);
                 border-radius: 12px;
                 scroll-behavior: auto; // 禁用浏览器默认的平滑滚动，使用自定义动画
+                transition: background 0.3s;
 
                 &::-webkit-scrollbar {
                     width: 8px;
@@ -365,11 +366,11 @@ onMounted(() => {
                         text-align: center;
                         font-size: 18px; //普通歌词
                         line-height: 2.8;
-                        color: var(--el-text-color-regular);
+                        color: var(--lyric-inactive-text);
                         transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
                         padding: 8px 0;
                         cursor: default;
-                        opacity: 0.65;
+                        opacity: var(--lyric-inactive-opacity);
 
                         &.active {
                             font-size: 31px; //当前播放歌词
@@ -377,14 +378,15 @@ onMounted(() => {
                             color: var(--el-color-primary);
                             opacity: 1;
                             transform: scale(1.05);
-                            text-shadow: 0 2px 8px rgba(64, 158, 255, 0.2);
+                            text-shadow: 0 2px 8px var(--lyric-active-shadow);
                         }
 
                         // 当前歌词的前一句和后一句稍微突出一些
                         &.active+.lyric-line,
                         &:has(+ .active) {
-                            opacity: 0.8;
-                            color: var(--el-text-color-regular);
+                            opacity: 0.7;
+                            color: var(--lyric-inactive-text);
+                            font-size: 20px;
                         }
                     }
                 }

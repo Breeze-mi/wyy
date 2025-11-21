@@ -486,6 +486,7 @@ const dragOverIndex = ref<number | null>(null);
 // 是否支持排序（只有自定义歌单和我喜欢支持）
 const canReorder = computed(() => !isHistoryPlaylist.value && !isLocalPlaylist.value);
 
+// 处理鼠标按下（右键划词开始）
 // 显示右键菜单
 const handleContextMenu = (event: MouseEvent, song: Song) => {
     event.preventDefault();
@@ -671,7 +672,7 @@ onUnmounted(() => {
 
         .selected-count {
             font-size: 13px;
-            color: #2878ff;
+            color: var(--el-color-primary);
             font-weight: 500;
         }
     }
@@ -772,20 +773,43 @@ onUnmounted(() => {
                     }
 
                     &.is-playing {
-                        background: var(--el-color-primary-light-9);
+                        background: var(--song-playing-bg);
 
                         .col-name .song-name {
-                            color: var(--el-color-primary);
+                            color: var(--song-playing-text);
+                        }
+
+                        .col-artist,
+                        .col-album {
+                            color: var(--song-playing-text-secondary);
+                        }
+
+                        .col-index {
+                            .playing-icon {
+                                color: var(--song-playing-text);
+                            }
                         }
                     }
 
                     &.is-selected {
-                        background: #e6f7ff !important;
-                        border-left: 3px solid #2878ff;
+                        background: var(--song-selected-bg) !important;
+                        border-left: 3px solid var(--song-selected-border);
                         padding-left: 13px;
 
                         .col-name .song-name {
                             font-weight: 500;
+                            color: var(--song-selected-text);
+                        }
+
+                        .col-artist,
+                        .col-album {
+                            color: var(--song-selected-text);
+                            opacity: 0.85;
+                        }
+
+                        .col-index {
+                            color: var(--song-selected-text);
+                            opacity: 0.7;
                         }
                     }
 
@@ -863,17 +887,17 @@ onUnmounted(() => {
 /* 右键菜单样式 */
 .context-menu {
     position: fixed;
-    background: white;
-    border: 1px solid #e5e5e7;
+    background: var(--el-bg-color-overlay);
+    border: 1px solid var(--el-border-color);
     border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     padding: 4px 0;
     min-width: 160px;
     z-index: 9999;
 
     .menu-divider {
         height: 1px;
-        background: #f0f0f0;
+        background: var(--el-border-color-light);
         margin: 4px 0;
     }
 
@@ -883,14 +907,15 @@ onUnmounted(() => {
         gap: 10px;
         padding: 10px 16px;
         cursor: pointer;
-        transition: background 0.2s;
+        transition: background 0.2s, color 0.2s;
         font-size: 13px;
-        color: #333;
+        color: var(--el-text-color-primary);
         position: relative;
 
         .el-icon {
             font-size: 16px;
-            color: #666;
+            color: var(--el-text-color-regular);
+            transition: color 0.2s;
         }
 
         .arrow-icon {
@@ -899,10 +924,10 @@ onUnmounted(() => {
         }
 
         &:hover {
-            background: #f7f7f7;
+            background: var(--el-fill-color-light);
 
             .el-icon {
-                color: #2878ff;
+                color: var(--el-color-primary);
             }
         }
 
@@ -913,10 +938,10 @@ onUnmounted(() => {
                 position: absolute;
                 left: 100%;
                 top: 0;
-                background: white;
-                border: 1px solid #e5e5e7;
+                background: var(--el-bg-color-overlay);
+                border: 1px solid var(--el-border-color);
                 border-radius: 6px;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
                 padding: 4px 0;
                 min-width: 140px;
                 max-height: 300px;
@@ -928,14 +953,14 @@ onUnmounted(() => {
                 }
 
                 &::-webkit-scrollbar-thumb {
-                    background: #ddd;
+                    background: var(--el-border-color);
                     border-radius: 3px;
                 }
 
                 .submenu-item {
                     padding: 10px 16px;
                     font-size: 13px;
-                    color: #333;
+                    color: var(--el-text-color-primary);
                     cursor: pointer;
                     transition: background 0.2s;
                     overflow: hidden;
@@ -943,11 +968,11 @@ onUnmounted(() => {
                     white-space: nowrap;
 
                     &:hover {
-                        background: #f7f7f7;
+                        background: var(--el-fill-color-light);
                     }
 
                     &.disabled {
-                        color: #999;
+                        color: var(--el-text-color-secondary);
                         cursor: not-allowed;
                     }
                 }

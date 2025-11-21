@@ -2,7 +2,7 @@
     <div class="sidebar">
         <!-- Logo -->
         <div class="sidebar-logo">
-            <h1>🎵 音乐</h1>
+            <h1>🎵 清风音乐</h1>
         </div>
 
         <!-- 主导航 -->
@@ -250,32 +250,34 @@ onUnmounted(() => {
 .sidebar {
     width: 200px;
     height: 100vh;
-    background: #f7f8fa;
+    background: var(--sidebar-bg);
     display: flex;
     flex-direction: column;
-    border-right: 1px solid #e5e5e7;
+    border-right: 1px solid var(--sidebar-border);
     flex-shrink: 0;
+    transition: background 0.3s, border-color 0.3s;
 
     .sidebar-logo {
         padding: 20px 16px;
-        border-bottom: 1px solid #e5e5e7;
+        border-bottom: 1px solid var(--sidebar-border);
 
         h1 {
             margin: 0;
             font-size: 18px;
             font-weight: 600;
-            color: #333;
+            color: var(--el-text-color-primary);
+            transition: color 0.3s;
         }
     }
 
     .sidebar-nav {
         padding: 12px 8px;
-        border-bottom: 1px solid #e5e5e7;
+        border-bottom: 1px solid var(--sidebar-border);
     }
 
     .sidebar-section {
         padding: 12px 8px;
-        border-bottom: 1px solid #e5e5e7;
+        border-bottom: 1px solid var(--sidebar-border);
 
         .section-title {
             display: flex;
@@ -283,16 +285,16 @@ onUnmounted(() => {
             justify-content: space-between;
             padding: 8px 12px;
             font-size: 12px;
-            color: #999;
+            color: var(--el-text-color-secondary);
             font-weight: 500;
 
             .add-icon {
                 cursor: pointer;
-                color: #666;
+                color: var(--el-text-color-regular);
                 transition: color 0.2s;
 
                 &:hover {
-                    color: #2878ff;
+                    color: var(--el-color-primary);
                 }
             }
         }
@@ -300,7 +302,7 @@ onUnmounted(() => {
         .empty-tip {
             padding: 8px 12px;
             font-size: 12px;
-            color: #999;
+            color: var(--el-text-color-secondary);
             text-align: center;
         }
 
@@ -313,7 +315,7 @@ onUnmounted(() => {
             }
 
             &::-webkit-scrollbar-thumb {
-                background: #ddd;
+                background: var(--el-border-color);
                 border-radius: 2px;
             }
         }
@@ -329,12 +331,13 @@ onUnmounted(() => {
         cursor: pointer;
         transition: all 0.2s;
         font-size: 14px;
-        color: #333;
+        color: var(--el-text-color-primary);
         position: relative;
 
         .el-icon {
             font-size: 18px;
-            color: #666;
+            color: var(--el-text-color-regular);
+            transition: color 0.2s;
         }
 
         span {
@@ -345,13 +348,14 @@ onUnmounted(() => {
         }
 
         &:hover {
-            background: #ebedf0;
+            background: var(--sidebar-hover);
         }
 
         &.active {
-            background: linear-gradient(90deg, #2878ff 0%, #4a8fff 100%);
+            background: var(--sidebar-active-bg);
             color: white;
-            box-shadow: 0 2px 8px rgba(40, 120, 255, 0.3);
+            box-shadow: 0 2px 8px var(--sidebar-active-shadow);
+            transition: background 0.3s, box-shadow 0.3s;
 
             .el-icon {
                 color: white;
@@ -369,10 +373,10 @@ onUnmounted(() => {
 /* 右键菜单样式 */
 .context-menu {
     position: fixed;
-    background: white;
-    border: 1px solid #e5e5e7;
+    background: var(--el-bg-color-overlay);
+    border: 1px solid var(--el-border-color);
     border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     padding: 4px 0;
     min-width: 140px;
     z-index: 10000;
@@ -383,30 +387,31 @@ onUnmounted(() => {
         gap: 10px;
         padding: 10px 16px;
         cursor: pointer;
-        transition: background 0.2s;
+        transition: background 0.2s, color 0.2s;
         font-size: 13px;
-        color: #333;
+        color: var(--el-text-color-primary);
 
         .el-icon {
             font-size: 16px;
-            color: #666;
+            color: var(--el-text-color-regular);
+            transition: color 0.2s;
         }
 
         &:hover {
-            background: #f7f7f7;
+            background: var(--el-fill-color-light);
 
             .el-icon {
-                color: #2878ff;
+                color: var(--el-color-primary);
             }
         }
 
         &.delete-item {
             &:hover {
-                background: #fff1f0;
-                color: #ff4d4f;
+                background: var(--el-color-danger-light-9);
+                color: var(--el-color-danger);
 
                 .el-icon {
-                    color: #ff4d4f;
+                    color: var(--el-color-danger);
                 }
             }
         }

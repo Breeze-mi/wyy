@@ -1135,13 +1135,14 @@ onMounted(async () => {
     right: 0;
     height: 70px;
     min-width: 600px;
-    background: var(--el-bg-color);
-    border-top: 1px solid var(--el-border-color);
+    background: var(--player-bar-bg);
+    border-top: 1px solid var(--player-bar-border);
     display: flex;
     align-items: center;
     padding: 0 12px;
     gap: 12px;
     z-index: 1000;
+    transition: background 0.3s, border-color 0.3s;
 
     .song-info {
         display: flex;
@@ -1351,6 +1352,25 @@ onMounted(async () => {
         min-width: 50px;
         flex-shrink: 0;
         justify-content: flex-end;
+        height: 100%;
+
+        .playlist-button {
+            height: 100%;
+            min-height: 70px;
+            border-radius: 0;
+            padding: 0 20px;
+            border: none;
+            background: transparent;
+            transition: background 0.2s;
+
+            &:hover {
+                background: var(--el-fill-color-light);
+            }
+
+            :deep(.el-icon) {
+                font-size: 22px;
+            }
+        }
     }
 
     // 统一设置图标尺寸

@@ -18,6 +18,9 @@ export type SearchType = "music" | "song" | "playlist" | "album";
 // 字体大小
 export type FontSize = "small" | "medium" | "large";
 
+// 字体系列
+export type FontFamily = string;
+
 const STORAGE_KEY = "music-player-settings";
 
 export const useSettingsStore = defineStore("settings", () => {
@@ -35,6 +38,7 @@ export const useSettingsStore = defineStore("settings", () => {
       quality: "lossless",
       searchType: "music",
       fontSize: "medium",
+      fontFamily: "Microsoft YaHei",
       apiBaseUrl: "",
     };
   };
@@ -49,6 +53,11 @@ export const useSettingsStore = defineStore("settings", () => {
 
   // 字体大小
   const fontSize = ref<FontSize>(savedSettings.fontSize || "medium");
+
+  // 字体系列
+  const fontFamily = ref<FontFamily>(
+    savedSettings.fontFamily || "Microsoft YaHei"
+  );
 
   // API服务器地址（空字符串表示使用默认地址）
   const apiBaseUrl = ref<string>(savedSettings.apiBaseUrl || "");
@@ -66,6 +75,7 @@ export const useSettingsStore = defineStore("settings", () => {
         quality: quality.value,
         searchType: searchType.value,
         fontSize: fontSize.value,
+        fontFamily: fontFamily.value,
         apiBaseUrl: apiBaseUrl.value,
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -78,7 +88,7 @@ export const useSettingsStore = defineStore("settings", () => {
   };
 
   // 监听变化并自动保存
-  watch([quality, searchType, fontSize, apiBaseUrl], saveSettings);
+  watch([quality, searchType, fontSize, fontFamily, apiBaseUrl], saveSettings);
 
   // 订阅其他标签页的更新
   tabSync.subscribe("settings", (data) => {
@@ -89,6 +99,7 @@ export const useSettingsStore = defineStore("settings", () => {
     quality.value = data.quality || "lossless";
     searchType.value = data.searchType || "music";
     fontSize.value = data.fontSize || "medium";
+    fontFamily.value = data.fontFamily || "Microsoft YaHei";
     apiBaseUrl.value = data.apiBaseUrl || "";
 
     // 使用 nextTick 确保在下一个 tick 重置同步标志
@@ -114,6 +125,13 @@ export const useSettingsStore = defineStore("settings", () => {
     applyFontSize(size);
   };
 
+  // 设置字体系列
+  const setFontFamily = (family: FontFamily) => {
+    fontFamily.value = family;
+    // 应用字体系列到根元素
+    applyFontFamily(family);
+  };
+
   // 应用字体大小
   const applyFontSize = (size: FontSize) => {
     const root = document.documentElement;
@@ -130,8 +148,15 @@ export const useSettingsStore = defineStore("settings", () => {
     }
   };
 
-  // 初始化时应用字体大小
+  // 应用字体系列
+  const applyFontFamily = (family: FontFamily) => {
+    const root = document.documentElement;
+    root.style.setProperty("--custom-font-family", family);
+  };
+
+  // 初始化时应用字体大小和字体系列
   applyFontSize(fontSize.value);
+  applyFontFamily(fontFamily.value);
 
   // 设置API地址
   const setApiBaseUrl = (url: string) => {
@@ -162,10 +187,12 @@ export const useSettingsStore = defineStore("settings", () => {
     quality,
     searchType,
     fontSize,
+    fontFamily,
     apiBaseUrl,
     setQuality,
     setSearchType,
     setFontSize,
+    setFontFamily,
     setApiBaseUrl,
     isElectron,
     isProduction,
