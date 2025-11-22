@@ -32,10 +32,13 @@
             <div class="right-section">
                 <div class="lyrics-container" ref="lyricsContainerRef">
                     <div v-if="lyrics.length > 0" class="lyrics">
-                        <div v-for="(line, index) in lyrics" :key="index" class="lyric-line"
+                        <div v-for="(line, index) in lyrics" :key="index" class="lyric-item"
                             :class="{ active: index === currentLyricIndex }"
                             :ref="(el: any) => { if (index === currentLyricIndex) currentLyricRef = el }">
-                            {{ line.text }}
+                            <div class="lyric-line">{{ line.text }}</div>
+                            <div v-if="settingsStore.showLyricTranslation && line.ttext" class="lyric-translation">
+                                {{ line.ttext }}
+                            </div>
                         </div>
                     </div>
                     <div v-else class="no-lyrics">
@@ -48,15 +51,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick, onMounted } from "vue";
+import { ref, watch, nextTick, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import { Setting, Sunny, Moon } from "@element-plus/icons-vue";
 import { usePlayerStore } from "@/stores/player";
 import { useThemeStore } from "@/stores/theme";
+import { useSettingsStore } from "@/stores/settings";
 
 const router = useRouter();
 const playerStore = usePlayerStore();
 const themeStore = useThemeStore();
+const settingsStore = useSettingsStore();
 
 const navigateToSettings = () => {
     router.push("/settings");
@@ -65,6 +70,7 @@ const navigateToSettings = () => {
 interface LyricLine {
     time: number;
     text: string;
+    ttext?: string; // 翻译文本
 }
 
 const lyrics = ref<LyricLine[]>([]);
@@ -74,13 +80,14 @@ const currentLyricRef = ref<HTMLElement>();
 let scrollTimer: number | null = null;
 let scrollAnimationFrame: number | null = null;
 
-// 解析歌词
-const parseLyric = (lyricText: string) => {
+// 解析歌词（支持翻译）
+const parseLyric = (lyricText: string, tlyricText?: string) => {
     if (!lyricText) return [];
 
     const lines = lyricText.split("\n");
     const result: LyricLine[] = [];
 
+    // 解析原文歌词
     lines.forEach((line) => {
         const match = line.match(/\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)/);
         if (match) {
@@ -95,6 +102,42 @@ const parseLyric = (lyricText: string) => {
         }
     });
 
+    // 解析翻译歌词并匹配到原文
+    if (tlyricText) {
+        const tlines = tlyricText.split("\n");
+        const tlyricMap = new Map<number, string>();
+
+        tlines.forEach((line) => {
+            const match = line.match(/\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)/);
+            if (match) {
+                const minutes = parseInt(match[1]);
+                const seconds = parseInt(match[2]);
+                const milliseconds = parseInt(match[3]);
+                const time = minutes * 60 + seconds + milliseconds / 1000;
+                const text = match[4].trim();
+                if (text) {
+                    tlyricMap.set(time, text);
+                }
+            }
+        });
+
+        // 将翻译匹配到原文（基于时间戳匹配，允许小误差）
+        result.forEach((item) => {
+            // 精确匹配
+            if (tlyricMap.has(item.time)) {
+                item.ttext = tlyricMap.get(item.time);
+            } else {
+                // 模糊匹配（±0.5秒内）
+                for (const [time, text] of tlyricMap.entries()) {
+                    if (Math.abs(time - item.time) < 0.5) {
+                        item.ttext = text;
+                        break;
+                    }
+                }
+            }
+        });
+    }
+
     return result.sort((a, b) => a.time - b.time);
 };
 
@@ -103,7 +146,7 @@ watch(
     () => playerStore.currentSongDetail,
     (detail) => {
         if (detail?.lyric) {
-            lyrics.value = parseLyric(detail.lyric);
+            lyrics.value = parseLyric(detail.lyric, detail.tlyric);
         } else {
             lyrics.value = [];
         }
@@ -216,7 +259,7 @@ const scrollToCurrentLyric = () => {
 onMounted(() => {
     // 初始化时解析歌词
     if (playerStore.currentSongDetail?.lyric) {
-        lyrics.value = parseLyric(playerStore.currentSongDetail.lyric);
+        lyrics.value = parseLyric(playerStore.currentSongDetail.lyric, playerStore.currentSongDetail.tlyric);
     }
 });
 </script>
@@ -317,7 +360,7 @@ onMounted(() => {
                     font-size: 30px;
                     font-weight: 600;
                     color: var(--el-text-color-primary);
-                    margin: 0 0 20px 0;
+                    margin: 0 0 12px 0;
                     overflow: hidden;
                     text-overflow: ellipsis;
                     white-space: nowrap;
@@ -327,8 +370,8 @@ onMounted(() => {
                 .song-album {
                     font-size: 16px;
                     color: var(--el-text-color-secondary);
-                    margin: 8px 0;
-                    line-height: 1.6;
+                    margin: 4px 0;
+                    line-height: 1.5;
                 }
             }
         }
@@ -369,23 +412,43 @@ onMounted(() => {
                 .lyrics {
                     padding: 100px 20px;
 
-                    .lyric-line {
+                    .lyric-item {
                         text-align: center;
-                        font-size: var(--lyric-inactive-font-size, 18px);
-                        line-height: 2.8;
-                        color: var(--lyric-inactive-text);
-                        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
                         padding: 8px 0;
                         cursor: default;
-                        opacity: 0.75; // 统一未播放歌词的亮度
+                        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+
+                        .lyric-line {
+                            font-size: var(--lyric-inactive-font-size, 18px);
+                            line-height: 2;
+                            color: var(--lyric-inactive-text);
+                            opacity: 0.75;
+                        }
+
+                        .lyric-translation {
+                            font-size: calc(var(--lyric-inactive-font-size, 18px) * 0.85);
+                            line-height: 1.8;
+                            color: var(--lyric-inactive-text);
+                            opacity: 0.6;
+                            margin-top: 4px;
+                        }
 
                         &.active {
-                            font-size: var(--lyric-active-font-size, 32px);
-                            font-weight: 700;
-                            color: var(--lyric-active-text, var(--el-color-primary));
-                            opacity: 1; //最大
                             transform: scale(1.05);
-                            text-shadow: 0 2px 8px var(--lyric-active-shadow);
+
+                            .lyric-line {
+                                font-size: var(--lyric-active-font-size, 32px);
+                                font-weight: 700;
+                                color: var(--lyric-active-text, var(--el-color-primary));
+                                opacity: 1;
+                                text-shadow: 0 2px 8px var(--lyric-active-shadow);
+                            }
+
+                            .lyric-translation {
+                                font-size: calc(var(--lyric-active-font-size, 32px) * 0.6);
+                                color: var(--lyric-active-text, var(--el-color-primary));
+                                opacity: 0.85;
+                            }
                         }
                     }
                 }

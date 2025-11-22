@@ -42,6 +42,7 @@ export const useSettingsStore = defineStore("settings", () => {
       apiBaseUrl: "",
       lyricActiveFontSize: 32,
       lyricInactiveFontSize: 18,
+      showLyricTranslation: true, // 默认显示翻译
     };
   };
 
@@ -65,8 +66,17 @@ export const useSettingsStore = defineStore("settings", () => {
   const apiBaseUrl = ref<string>(savedSettings.apiBaseUrl || "");
 
   // 歌词字体大小（像素值）
-  const lyricActiveFontSize = ref<number>(savedSettings.lyricActiveFontSize || 32);
-  const lyricInactiveFontSize = ref<number>(savedSettings.lyricInactiveFontSize || 18);
+  const lyricActiveFontSize = ref<number>(
+    savedSettings.lyricActiveFontSize || 32
+  );
+  const lyricInactiveFontSize = ref<number>(
+    savedSettings.lyricInactiveFontSize || 18
+  );
+
+  // 是否显示歌词翻译（外文歌曲显示中文翻译）
+  const showLyricTranslation = ref<boolean>(
+    savedSettings.showLyricTranslation !== false // 默认为 true
+  );
 
   // 标志：是否正在从其他标签页同步数据（避免循环广播）
   let isSyncing = false;
@@ -85,6 +95,7 @@ export const useSettingsStore = defineStore("settings", () => {
         apiBaseUrl: apiBaseUrl.value,
         lyricActiveFontSize: lyricActiveFontSize.value,
         lyricInactiveFontSize: lyricInactiveFontSize.value,
+        showLyricTranslation: showLyricTranslation.value,
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 
@@ -96,7 +107,19 @@ export const useSettingsStore = defineStore("settings", () => {
   };
 
   // 监听变化并自动保存
-  watch([quality, searchType, fontSize, fontFamily, apiBaseUrl, lyricActiveFontSize, lyricInactiveFontSize], saveSettings);
+  watch(
+    [
+      quality,
+      searchType,
+      fontSize,
+      fontFamily,
+      apiBaseUrl,
+      lyricActiveFontSize,
+      lyricInactiveFontSize,
+      showLyricTranslation,
+    ],
+    saveSettings
+  );
 
   // 订阅其他标签页的更新
   tabSync.subscribe("settings", (data) => {
@@ -111,6 +134,7 @@ export const useSettingsStore = defineStore("settings", () => {
     apiBaseUrl.value = data.apiBaseUrl || "";
     lyricActiveFontSize.value = data.lyricActiveFontSize || 32;
     lyricInactiveFontSize.value = data.lyricInactiveFontSize || 18;
+    showLyricTranslation.value = data.showLyricTranslation !== false;
 
     // 使用 nextTick 确保在下一个 tick 重置同步标志
     nextTick(() => {
@@ -149,10 +173,10 @@ export const useSettingsStore = defineStore("settings", () => {
       //程序整体字体
       case "small":
         // 小
-        root.style.setProperty("--custom-font-size-base", "14px");
-        root.style.setProperty("--custom-font-size-sm", "12px");
-        root.style.setProperty("--custom-font-size-md", "14px");
-        root.style.setProperty("--custom-font-size-lg", "16px");
+        root.style.setProperty("--custom-font-size-base", "12px");
+        root.style.setProperty("--custom-font-size-sm", "10px");
+        root.style.setProperty("--custom-font-size-md", "12px");
+        root.style.setProperty("--custom-font-size-lg", "14px");
         break;
       case "medium":
         // 中
@@ -213,11 +237,22 @@ export const useSettingsStore = defineStore("settings", () => {
     applyLyricFontSizes();
   };
 
+  // 设置是否显示歌词翻译
+  const setShowLyricTranslation = (show: boolean) => {
+    showLyricTranslation.value = show;
+  };
+
   // 应用歌词字体大小到 CSS 变量
   const applyLyricFontSizes = () => {
     const root = document.documentElement;
-    root.style.setProperty("--lyric-active-font-size", `${lyricActiveFontSize.value}px`);
-    root.style.setProperty("--lyric-inactive-font-size", `${lyricInactiveFontSize.value}px`);
+    root.style.setProperty(
+      "--lyric-active-font-size",
+      `${lyricActiveFontSize.value}px`
+    );
+    root.style.setProperty(
+      "--lyric-inactive-font-size",
+      `${lyricInactiveFontSize.value}px`
+    );
   };
 
   // 初始化时应用歌词字体大小
@@ -231,12 +266,14 @@ export const useSettingsStore = defineStore("settings", () => {
     apiBaseUrl,
     lyricActiveFontSize,
     lyricInactiveFontSize,
+    showLyricTranslation,
     setQuality,
     setSearchType,
     setFontSize,
     setFontFamily,
     setApiBaseUrl,
     setLyricFontSizes,
+    setShowLyricTranslation,
     isElectron,
     isProduction,
     isDevelopment,

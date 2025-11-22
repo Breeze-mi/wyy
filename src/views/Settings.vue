@@ -25,9 +25,9 @@
                     </div>
                     <el-select v-model="selectedThemePreset" placeholder="选择主题" style="width: 200px"
                         @change="handleThemePresetChange">
-                        <el-option label="网易云红色（默认）" value="default" />
-                        <el-option label="酷狗蓝色" value="kugou" />
-                        <el-option label="QQ音乐绿色" value="qq" />
+                        <el-option label="默认" value="default" />
+                        <el-option label="酷狗蓝" value="kugou" />
+                        <el-option label="QQ绿" value="qq" />
                         <el-option label="橙黄橘绿" value="orange" />
                         <el-option label="粉装玉琢" value="pink" />
                         <el-option label="重厅球紫" value="purple" />
@@ -39,37 +39,44 @@
                         <div class="setting-desc">自定义主题主色调（高级）</div>
                     </div>
                     <div style="display: flex; gap: 12px; align-items: center;">
-                        <el-color-picker v-model="customPrimaryColor" @change="handlePrimaryColorChange" />
-                        <el-button size="small" @click="handleResetThemeColors">恢复默认</el-button>
+                        <el-color-picker v-model="customPrimaryColor" @active-change="handlePrimaryColorChange" />
+                        <el-button @click="handleResetThemeColors">恢复默认</el-button>
                     </div>
                 </div>
                 <div class="setting-item">
                     <div class="setting-info">
                         <div class="setting-title">选中背景色</div>
-                        <div class="setting-desc">自定义歌曲选中时的背景颜色（高级）</div>
+                        <div class="setting-desc">自定义歌曲选中时的背景颜色（默认跟随主题，可覆盖）</div>
                     </div>
-                    <el-color-picker v-model="customSelectedBg" @change="handleSelectedBgChange" />
+                    <el-color-picker v-model="customSelectedBg" @active-change="handleSelectedBgChange" />
                 </div>
                 <div class="setting-item">
                     <div class="setting-info">
                         <div class="setting-title">选中文字色</div>
-                        <div class="setting-desc">自定义歌曲选中时的文字颜色（高级）</div>
+                        <div class="setting-desc">自定义歌曲选中时的文字颜色（默认跟随主题，可覆盖）</div>
                     </div>
-                    <el-color-picker v-model="customSelectedText" @change="handleSelectedTextChange" />
+                    <el-color-picker v-model="customSelectedText" @active-change="handleSelectedTextChange" />
                 </div>
                 <div class="setting-item">
                     <div class="setting-info">
                         <div class="setting-title">歌词背景色</div>
-                        <div class="setting-desc">自定义歌词显示区域的背景颜色（高级）</div>
+                        <div class="setting-desc">自定义歌词显示区域的背景颜色（独立设置，不受主题影响）</div>
                     </div>
-                    <el-color-picker v-model="customLyricBg" @change="handleLyricBgChange" />
+                    <el-color-picker v-model="customLyricBg" @active-change="handleLyricBgChange" />
+                </div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-title">已播放歌词颜色</div>
+                        <div class="setting-desc">自定义正在播放（已播放）的歌词文字颜色（独立设置，不受主题影响）</div>
+                    </div>
+                    <el-color-picker v-model="customLyricActiveText" @active-change="handleLyricActiveTextChange" />
                 </div>
                 <div class="setting-item">
                     <div class="setting-info">
                         <div class="setting-title">未播放歌词颜色</div>
-                        <div class="setting-desc">自定义未播放歌词的文字颜色（高级）</div>
+                        <div class="setting-desc">自定义未播放歌词的文字颜色（独立设置，不受主题影响）</div>
                     </div>
-                    <el-color-picker v-model="customLyricInactiveText" @change="handleLyricInactiveTextChange" />
+                    <el-color-picker v-model="customLyricInactiveText" @active-change="handleLyricInactiveTextChange" />
                 </div>
                 <div class="setting-item">
                     <div class="setting-info">
@@ -119,6 +126,40 @@
                         <el-option label="超清母带" value="jymaster" />
                     </el-select>
                 </div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-title">歌词翻译</div>
+                        <div class="setting-desc">播放外文歌曲时显示中文翻译（如有）</div>
+                    </div>
+                    <el-switch v-model="settingsStore.showLyricTranslation" active-text="开启" inactive-text="关闭" />
+                </div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-title">歌词字体大小</div>
+                        <div class="setting-desc">自定义歌曲详情页中已播放和未播放歌词的字体大小（单位：px）</div>
+                    </div>
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span
+                                    style="width: 80px; color: var(--el-text-color-primary); font-size: var(--custom-font-size-base);">已播放：</span>
+                                <el-input-number v-model="lyricActiveSizeInput" :min="12" :max="60" :step="1"
+                                    style="width: 120px" @change="handleLyricFontSizeChange" />
+                                <span
+                                    style="color: var(--el-text-color-primary); font-size: var(--custom-font-size-base);">px</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span
+                                    style="width: 80px; color: var(--el-text-color-primary); font-size: var(--custom-font-size-base);">未播放：</span>
+                                <el-input-number v-model="lyricInactiveSizeInput" :min="12" :max="60" :step="1"
+                                    style="width: 120px" @change="handleLyricFontSizeChange" />
+                                <span
+                                    style="color: var(--el-text-color-primary); font-size: var(--custom-font-size-base);">px</span>
+                            </div>
+                        </div>
+                        <el-button @click="handleResetLyricFontSize">恢复默认</el-button>
+                    </div>
+                </div>
             </div>
 
             <!-- 缓存管理 -->
@@ -130,7 +171,8 @@
                         <div class="setting-desc">
                             <div>占用空间：{{ formatBytes(audioCacheInfo.totalSize) }}</div>
                             <el-progress :percentage="audioCachePercentage" :show-text="false"
-                                :color="audioCachePercentage > 80 ? '#f56c6c' : '#409eff'" style="margin-top: 8px;" />
+                                :color="audioCachePercentage > 80 ? '#f56c6c' : progressColor"
+                                style="margin-top: 8px;" />
                         </div>
                     </div>
                     <el-button type="danger" @click="handleClearAudioCache"
@@ -220,7 +262,7 @@
                 <div class="setting-item">
                     <div class="setting-info">
                         <div class="setting-title">版本信息</div>
-                        <div class="setting-desc">网易云音乐播放器 v1.0.0</div>
+                        <div class="setting-desc"> v1.1.4 </div>
                     </div>
                 </div>
                 <div class="setting-item">
@@ -231,8 +273,15 @@
                 </div>
                 <div class="setting-item">
                     <div class="setting-info">
-                        <div class="setting-title">技术栈</div>
-                        <div class="setting-desc">Vite + Vue 3 + TypeScript + Electron</div>
+                        <div class="setting-title">开源地址</div>
+                        <div class="setting-desc">此项目已开源，开源地址：<a href="https://github.com/Breeze-mi/qfmusic"
+                                target="_blank" class="github-link">https://github.com/Breeze-mi/qfmusic</a></div>
+                    </div>
+                </div>
+                <div class="setting-item clickable" @click="handleShowDisclaimer">
+                    <div class="setting-info">
+                        <div class="setting-title">免责声明</div>
+                        <div class="setting-desc">查看项目使用说明和版权声明</div>
                     </div>
                 </div>
             </div>
@@ -241,7 +290,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted } from "vue";
+import { computed, ref, onMounted, nextTick } from "vue";
 import { useRouter } from "vue-router";
 import { ArrowLeft } from "@element-plus/icons-vue";
 import { ElMessage, ElMessageBox } from "element-plus";
@@ -253,7 +302,7 @@ import { usePlaylistStore } from "@/stores/playlist";
 import { useAudioCacheStore } from "@/stores/audioCache";
 import { StorageFactory } from "@/storage/storageFactory";
 import { resetAPIHealthStatus } from "@/utils/request";
-import { themePresets } from "@/config/theme";
+import { themePresets, lightThemeColors, darkThemeColors } from "@/config/theme";
 
 const router = useRouter();
 const themeStore = useThemeStore();
@@ -262,48 +311,45 @@ const settingsStore = useSettingsStore();
 const playlistStore = usePlaylistStore();
 const audioCacheStore = useAudioCacheStore();
 
-// 主题预设选择
-const selectedThemePreset = ref<string>('default');
+// 主题预设选择（从 localStorage 读取，默认为 'default'）
+const selectedThemePreset = ref<string>(localStorage.getItem('selectedThemePreset') || 'default');
 
 // 字体系列选择
 const selectedFontFamily = ref<string>(settingsStore.fontFamily);
 
-// 自定义颜色
+// 自定义颜色（主题相关，只有主色调）
 const customPrimaryColor = ref<string>('');
+
+// 独立的选中颜色（不受主题预设影响）
 const customSelectedBg = ref<string>('');
 const customSelectedText = ref<string>('');
+
+// 独立的歌词颜色（不受主题预设影响）
 const customLyricBg = ref<string>('');
+const customLyricActiveText = ref<string>('');
 const customLyricInactiveText = ref<string>('');
+
+// 歌词字体大小输入
+const lyricActiveSizeInput = ref<number>(settingsStore.lyricActiveFontSize);
+const lyricInactiveSizeInput = ref<number>(settingsStore.lyricInactiveFontSize);
 
 // 初始化自定义颜色和主题预设
 const initCustomColors = () => {
-    const savedColors = themeStore.customColors;
-    if (savedColors) {
-        customPrimaryColor.value = savedColors.primary || '';
-        customSelectedBg.value = savedColors.selectedBg || '';
-        customSelectedText.value = savedColors.selectedText || '';
-        customLyricBg.value = savedColors.lyricBg || '';
-        customLyricInactiveText.value = savedColors.lyricInactiveText || '';
+    // selectedThemePreset 已经从 localStorage 初始化了，不需要再设置
 
-        // 检测当前使用的是哪个预设主题
-        const currentPrimary = savedColors.primary;
-        if (currentPrimary === '#2878ff') {
-            selectedThemePreset.value = 'kugou';
-        } else if (currentPrimary === '#31c27c') {
-            selectedThemePreset.value = 'qq';
-        } else if (currentPrimary === '#ff9800') {
-            selectedThemePreset.value = 'orange';
-        } else if (currentPrimary === '#e91e63') {
-            selectedThemePreset.value = 'pink';
-        } else if (currentPrimary === '#9c27b0') {
-            selectedThemePreset.value = 'purple';
-        } else if (currentPrimary === '#ec4141') {
-            selectedThemePreset.value = 'netease';
-        } else {
-            selectedThemePreset.value = 'default';
-        }
-    } else {
-        selectedThemePreset.value = 'default';
+    // 加载独立的选中颜色
+    const savedSelectedColors = themeStore.selectedColors;
+    if (savedSelectedColors) {
+        customSelectedBg.value = savedSelectedColors.selectedBg || '';
+        customSelectedText.value = savedSelectedColors.selectedText || '';
+    }
+
+    // 加载独立的歌词颜色
+    const savedLyricColors = themeStore.lyricColors;
+    if (savedLyricColors) {
+        customLyricBg.value = savedLyricColors.lyricBg || '';
+        customLyricActiveText.value = savedLyricColors.lyricActiveText || '';
+        customLyricInactiveText.value = savedLyricColors.lyricInactiveText || '';
     }
 };
 
@@ -398,6 +444,22 @@ const formatBytes = (bytes: number): string => {
 const audioCachePercentage = computed(() => {
     const maxSize = 500 * 1024 * 1024; // 500MB
     return Math.min((audioCacheInfo.value.totalSize / maxSize) * 100, 100);
+});
+
+// 获取当前主题色用于进度条
+const progressColor = computed(() => {
+    // 直接从 store 数据计算主题色，不依赖 DOM
+    // 复制 applyCustomTheme 的合并逻辑
+    const baseColors = themeStore.isDark ? darkThemeColors : lightThemeColors;
+
+    // 合并自定义颜色（与 theme.ts 的 applyTheme 逻辑一致）
+    const mergedColors = {
+        ...baseColors,
+        ...(themeStore.customColors || {}),
+    };
+
+    // 返回主题主色调
+    return mergedColors.primary;
 });
 
 // 计算歌单数据大小
@@ -615,7 +677,7 @@ const generateColorVariants = (baseColor: string) => {
     };
 };
 
-// 获取当前自定义颜色对象
+// 获取当前自定义颜色对象（主题相关，只有主色调）
 const getCurrentCustomColors = () => {
     const colors: any = {};
 
@@ -623,6 +685,13 @@ const getCurrentCustomColors = () => {
         Object.assign(colors, generateColorVariants(customPrimaryColor.value));
         colors.selectedBorder = customPrimaryColor.value;
     }
+
+    return Object.keys(colors).length > 0 ? colors : null;
+};
+
+// 获取独立的选中颜色
+const getCurrentSelectedColors = () => {
+    const colors: any = {};
 
     if (customSelectedBg.value) {
         colors.selectedBg = customSelectedBg.value;
@@ -632,8 +701,19 @@ const getCurrentCustomColors = () => {
         colors.selectedText = customSelectedText.value;
     }
 
+    return Object.keys(colors).length > 0 ? colors : null;
+};
+
+// 获取独立的歌词颜色
+const getCurrentLyricColors = () => {
+    const colors: any = {};
+
     if (customLyricBg.value) {
         colors.lyricBg = customLyricBg.value;
+    }
+
+    if (customLyricActiveText.value) {
+        colors.lyricActiveText = customLyricActiveText.value;
     }
 
     if (customLyricInactiveText.value) {
@@ -644,64 +724,94 @@ const getCurrentCustomColors = () => {
 };
 
 // 主色调变化
-const handlePrimaryColorChange = () => {
+const handlePrimaryColorChange = (color: string | null) => {
+    if (color) {
+        customPrimaryColor.value = color;
+        // 用户自定义了颜色，将预设重置为 default，避免混淆
+        selectedThemePreset.value = 'default';
+        localStorage.setItem('selectedThemePreset', 'default');
+    }
     const colors = getCurrentCustomColors();
     themeStore.setCustomColors(colors);
 };
 
 // 选中背景色变化
-const handleSelectedBgChange = () => {
-    const colors = getCurrentCustomColors();
-    themeStore.setCustomColors(colors);
+const handleSelectedBgChange = (color: string | null) => {
+    if (color) {
+        customSelectedBg.value = color;
+    }
+    const colors = getCurrentSelectedColors();
+    themeStore.setSelectedColors(colors);
 };
 
 // 选中文字色变化
-const handleSelectedTextChange = () => {
-    const colors = getCurrentCustomColors();
-    themeStore.setCustomColors(colors);
+const handleSelectedTextChange = (color: string | null) => {
+    if (color) {
+        customSelectedText.value = color;
+    }
+    const colors = getCurrentSelectedColors();
+    themeStore.setSelectedColors(colors);
 };
 
 // 歌词背景色变化
-const handleLyricBgChange = () => {
-    const colors = getCurrentCustomColors();
-    themeStore.setCustomColors(colors);
+const handleLyricBgChange = (color: string | null) => {
+    if (color) {
+        customLyricBg.value = color;
+    }
+    const colors = getCurrentLyricColors();
+    themeStore.setLyricColors(colors);
+};
+
+// 已播放歌词颜色变化
+const handleLyricActiveTextChange = (color: string | null) => {
+    if (color) {
+        customLyricActiveText.value = color;
+    }
+    const colors = getCurrentLyricColors();
+    themeStore.setLyricColors(colors);
 };
 
 // 未播放歌词颜色变化
-const handleLyricInactiveTextChange = () => {
-    const colors = getCurrentCustomColors();
-    themeStore.setCustomColors(colors);
+const handleLyricInactiveTextChange = (color: string | null) => {
+    if (color) {
+        customLyricInactiveText.value = color;
+    }
+    const colors = getCurrentLyricColors();
+    themeStore.setLyricColors(colors);
 };
 
 // 主题预设变化
 const handleThemePresetChange = (preset: string) => {
-    const themeConfig = themePresets[preset as keyof typeof themePresets];
-    themeStore.setCustomColors(themeConfig);
+    // 使用 nextTick 确保在下一个 tick 执行，避免和颜色选择器的 @active-change 冲突
+    nextTick(() => {
+        const themeConfig = themePresets[preset as keyof typeof themePresets];
+        themeStore.setCustomColors(themeConfig);
 
-    // 清空自定义颜色输入框
-    customPrimaryColor.value = '';
-    customSelectedBg.value = '';
-    customSelectedText.value = '';
-    customLyricBg.value = '';
-    customLyricInactiveText.value = '';
+        // 保存当前选择的预设到 localStorage
+        localStorage.setItem('selectedThemePreset', preset);
 
-    const themeNames: Record<string, string> = {
-        default: '网易云红色',
-        netease: '网易云红色',
-        kugou: '酷狗蓝色',
-        qq: 'QQ音乐绿色',
-        orange: '橙黄橘绿',
-        pink: '粉装玉琢',
-        purple: '重厅球紫',
-    };
+        // 只清空主题相关的自定义颜色输入框（主色调）
+        customPrimaryColor.value = '';
+        // 不清空选中颜色和歌词颜色（它们是独立的）
 
-    ElMessage.success(`已切换到${themeNames[preset]}主题`);
+        const themeNames: Record<string, string> = {
+            default: '默认',
+            netease: '默认',
+            kugou: '酷狗蓝',
+            qq: 'QQ绿',
+            orange: '橙黄橘绿',
+            pink: '粉装玉琢',
+            purple: '重厅球紫',
+        };
+
+        ElMessage.success(`已切换到${themeNames[preset]}主题`);
+    });
 };
 
 // 恢复默认主题颜色
 const handleResetThemeColors = () => {
     ElMessageBox.confirm(
-        '确定要恢复默认主题颜色吗？所有自定义颜色将被清除。',
+        '确定要恢复默认主题颜色吗？（选中颜色和歌词颜色不会被清除）',
         '恢复默认',
         {
             confirmButtonText: '确定',
@@ -710,11 +820,9 @@ const handleResetThemeColors = () => {
         }
     ).then(() => {
         selectedThemePreset.value = 'default';
+        localStorage.setItem('selectedThemePreset', 'default');
         customPrimaryColor.value = '';
-        customSelectedBg.value = '';
-        customSelectedText.value = '';
-        customLyricBg.value = '';
-        customLyricInactiveText.value = '';
+        // 不清空选中颜色和歌词颜色（它们是独立的）
         themeStore.setCustomColors(null);
         ElMessage.success('已恢复默认主题颜色');
     }).catch(() => {
@@ -763,6 +871,44 @@ const handleResetApiUrl = () => {
     // });
 };
 
+// 歌词字体大小变化
+const handleLyricFontSizeChange = () => {
+    settingsStore.setLyricFontSizes(lyricActiveSizeInput.value, lyricInactiveSizeInput.value);
+    // ElMessage.success("歌词字体大小已更新");
+};
+
+// 恢复默认歌词字体大小
+const handleResetLyricFontSize = () => {
+    lyricActiveSizeInput.value = 32;
+    lyricInactiveSizeInput.value = 18;
+    settingsStore.setLyricFontSizes(32, 18);
+    ElMessage.success("已恢复默认歌词字体大小");
+};
+
+// 显示免责声明
+const handleShowDisclaimer = () => {
+    ElMessageBox.alert(
+        `<div style="line-height: 1.8; text-align: left;">
+            <p><strong>清风音乐播放器</strong> 是一个开源的学习交流项目。</p>
+            <p><strong>重要声明：</strong></p>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+                <li>本项目仅供个人学习、研究和交流使用，不得用于任何商业用途。</li>
+                <li>本项目不提供音乐文件下载和存储服务，所有音乐资源均来自第三方平台。</li>
+                <li>请尊重音乐版权，支持正版音乐。</li>
+                <li>使用本项目产生的任何法律责任由使用者自行承担，与开发者无关。</li>
+                <li>如有侵权，请联系开发者删除相关内容。</li>
+            </ul>
+            <p>感谢您的理解与支持！</p>
+        </div>`,
+        '免责声明',
+        {
+            confirmButtonText: '我已知晓',
+            dangerouslyUseHTMLString: true,
+            customClass: 'disclaimer-dialog'
+        }
+    );
+};
+
 // 测试 API 连接（可选）
 // const testApiConnection = async (url: string) => {
 //     try {
@@ -797,8 +943,16 @@ const handleResetApiUrl = () => {
         align-items: center;
         gap: 16px;
         padding: 16px 24px;
+        height: 79px;
         background: var(--el-bg-color);
         border-bottom: 1px solid var(--el-border-color);
+
+        // 加大返回按钮
+        :deep(.el-button.is-circle) {
+            width: 40px;
+            height: 40px;
+            font-size: 22px;
+        }
 
         h1 {
             margin: 0;
@@ -818,7 +972,7 @@ const handleResetApiUrl = () => {
             margin-bottom: 32px;
 
             h2 {
-                font-size: 16px;
+                font-size: var(--custom-font-size-lg);
                 font-weight: 600;
                 color: var(--el-text-color-primary);
                 margin: 0 0 16px 0;
@@ -844,14 +998,14 @@ const handleResetApiUrl = () => {
                     flex: 1;
 
                     .setting-title {
-                        // font-size: 15px;
+                        font-size: var(--custom-font-size-base);
                         font-weight: 500;
                         color: var(--el-text-color-primary);
                         margin-bottom: 4px;
                     }
 
                     .setting-desc {
-                        // font-size: 13px;
+                        font-size: var(--custom-font-size-sm);
                         color: var(--el-text-color-secondary);
                         max-width: 1000px;
 
@@ -873,6 +1027,30 @@ const handleResetApiUrl = () => {
                     display: flex;
                     gap: 8px;
                     align-items: center;
+                }
+
+                // 隐藏颜色选择器的确定/清空按钮（因为使用 @active-change 实时更新）
+                :deep(.el-color-dropdown__btns) {
+                    display: none;
+                }
+
+                // 可点击的设置项
+                &.clickable {
+                    cursor: pointer;
+
+                    &:hover {
+                        background: var(--el-fill-color);
+                    }
+                }
+
+                // GitHub 链接样式
+                .github-link {
+                    color: var(--el-color-primary);
+                    text-decoration: none;
+
+                    &:hover {
+                        text-decoration: underline;
+                    }
                 }
             }
         }

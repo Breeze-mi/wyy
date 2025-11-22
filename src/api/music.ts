@@ -28,6 +28,7 @@ export interface SongDetail {
   url: string;
   pic: string;
   lyric: string;
+  tlyric?: string; // 翻译歌词
 }
 
 // 歌单信息
